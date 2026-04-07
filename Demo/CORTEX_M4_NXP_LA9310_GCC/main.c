@@ -27,6 +27,7 @@
 #include <sw_cmd_engine.h>
 #include "la9310_v2h_if.h"
 #include "drivers/avi/la9310_vspa_dma.h"
+#include "ms_l1c_controller.h"
 
 
 #if NXP_ERRATUM_A_009410
@@ -530,6 +531,12 @@ int main( void )
         }
 
 #endif
+
+    /* Create L1 Controller Tasks */
+    l1_controller_tasks_create();    
+        
+    /* Initialize L1 Controller Task Queues */
+    l1_controller_queues_init();
 
     /* Start FreeRTOS scheduler */
     vTaskStartScheduler();
