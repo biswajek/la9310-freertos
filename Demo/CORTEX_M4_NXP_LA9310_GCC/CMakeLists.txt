@@ -23,6 +23,7 @@ SET(CMAKE_EXECUTABLE_LIBRARY_SUFFIX)
 # CURRENT DIRECTORY
 SET(ProjDirPath ${CMAKE_CURRENT_SOURCE_DIR})
 SET(LA9310_COMMON_HEADERS ${ProjDirPath}/../../common_headers)
+SET(PAL_DIR ${ProjDirPath}/../../../../Platform/PAL/install/pal/freertos-cm4)
 
 # RELEASE LINK FILE
 if(TURN_ON_STANDALONE_MODE)
@@ -80,6 +81,7 @@ endif()
     INCLUDE_DIRECTORIES(${ProjDirPath}/../../Source/portable/GCC/ARM_CM4)
     INCLUDE_DIRECTORIES(${ProjDirPath}/../..//Source/include)
     INCLUDE_DIRECTORIES(${ProjDirPath}/include)
+    INCLUDE_DIRECTORIES(${PAL_DIR}/include)
     INCLUDE_DIRECTORIES(${ProjDirPath}/platform/ARM_CM4/include/)
     INCLUDE_DIRECTORIES(${ProjDirPath}/platform/boards/la9310/)
     INCLUDE_DIRECTORIES(${ProjDirPath}/drivers/misc/)
@@ -126,6 +128,7 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/main.c"
     "${ProjDirPath}/la9310_demo.c"
     "${ProjDirPath}/la9310_irq.c"
+    "${ProjDirPath}/ms_logger.c"
     "${ProjDirPath}/ms_l1c_controller.c"
     "${ProjDirPath}/ms_l1c_rf_manager.c"
     "${ProjDirPath}/ms_l1c_receiver.c"
@@ -172,6 +175,7 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/platform/ARM_CM4/exceptions.c"
     "${ProjDirPath}/platform/boards/la9310/hardware_init.c"
     "${ProjDirPath}/main.c"
+    "${ProjDirPath}/ms_logger.c"
     "${ProjDirPath}/ms_l1c_controller.c"
     "${ProjDirPath}/ms_l1c_rf_manager.c"
     "${ProjDirPath}/ms_l1c_receiver.c"
@@ -235,6 +239,8 @@ ADD_EXECUTABLE(la9310 ${LA9310_SOURCES})
 SET_TARGET_PROPERTIES(la9310 PROPERTIES OUTPUT_NAME "la9310.elf")
 
 TARGET_LINK_LIBRARIES(la9310 -Wl,--start-group)
+# PAL library
+TARGET_LINK_LIBRARIES(la9310 ${PAL_DIR}/lib/libPAL.a)
 # LIBRARIES
 #IF(CMAKE_BUILD_TYPE MATCHES Debug)
 #ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
