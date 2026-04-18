@@ -11,11 +11,6 @@
 struct xPhyTimerRegs * regs = ( struct xPhyTimerRegs * ) ( PHY_TIMER_BASE_ADDRESS );
 
 static uint32_t ulNextPPSOUT;
-static uint32_t ulPPSOUTPeriodMs = PHY_TIMER_PPS_OUT_PULSE_DELAY;
-
-__attribute__(( weak )) void vL1cPhyTimerTickHook( void )
-{
-}
 
 static uint32_t prvPhyTimerComparatorGetConfig( uint8_t ucComparator )
 {
@@ -108,7 +103,7 @@ void vPhyTimerPPSOUTConfig()
     NVIC_EnableIRQ( IRQ_PPS_OUT );
 
     ulNextPPSOUT = ulPhyTimerCapture( PHY_TIMER_COMP_PPS_OUT );
-    ulNextPPSOUT += MSECONDS_TO_PHY_TIMER_COUNT( ulPPSOUTPeriodMs );
+    ulNextPPSOUT += MSECONDS_TO_PHY_TIMER_COUNT( PHY_TIMER_PPS_OUT_PULSE_DELAY );
 
     vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
             PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
@@ -116,23 +111,11 @@ void vPhyTimerPPSOUTConfig()
             ulNextPPSOUT );
 }
 
-void vPhyTimerPPSOUTSetPeriodMs( uint32_t periodMs )
-{
-    if( periodMs == 0U )
-    {
-        return;
-    }
-
-    ulPPSOUTPeriodMs = periodMs;
-}
-
 void vPhyTimerPPSOUTHandler()
 {
-    vL1cPhyTimerTickHook();
-
     NVIC_ClearPendingIRQ( IRQ_PPS_OUT );
 
-    ulNextPPSOUT += MSECONDS_TO_PHY_TIMER_COUNT( ulPPSOUTPeriodMs );
+    ulNextPPSOUT += MSECONDS_TO_PHY_TIMER_COUNT( PHY_TIMER_PPS_OUT_PULSE_DELAY );
 
     vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
             PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,

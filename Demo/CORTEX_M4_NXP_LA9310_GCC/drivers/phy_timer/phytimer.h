@@ -256,17 +256,6 @@ void vPhyTimerUpdateComparator( uint8_t ucComparator, uint32_t ulTriggerValue );
 void vPhyTimerPPSOUTConfig( void );
 
 /**
- *  @Function       vPhyTimerPPSOUTSetPeriodMs
- *
- *  @Description    Set periodic interrupt interval used by PPS OUT handler.
- *
- *  @Param[in]      periodMs - Period in milliseconds.
- *
- *  @Return         None
- */
-void vPhyTimerPPSOUTSetPeriodMs( uint32_t periodMs );
-
-/**
  *  @Function	    vPhyTimerPPSINEnable
  *
  *  @Description	Enable and Configure PPS IN interrupt

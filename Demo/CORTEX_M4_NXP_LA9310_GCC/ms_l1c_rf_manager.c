@@ -2,11 +2,6 @@
  * Mundo Sense
  */
 
-/**
- * @file ms_l1c_rf_manager.c
- * @brief L1 RF manager subsystem placeholder.
- */
-
 /*------------------------------------------
                 INCLUDES
 
@@ -42,9 +37,7 @@
  * Placeholder — implementation to be added when RF control sequences
  * are defined.
  */
-void l1_controller_rf_manager_init( uint8_t core_num )
-{
-    /* RF manager init is currently a placeholder hook. */
+void l1_controller_rf_manager_init( uint8_t core_num ){
     UNUSED( core_num );
     return;
 }

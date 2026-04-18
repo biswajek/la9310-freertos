@@ -11,7 +11,7 @@ OUTPUT_ARCH(arm)
 ENTRY(m4_startup)
 
 STACK_SIZE = 0x1000;
-HEAP_SIZE = 0x1E0;
+HEAP_SIZE = 0x200;
 
 /* Specify the memory areas */
 
@@ -21,12 +21,10 @@ MEMORY
   m_interrupts          (RX)  : ORIGIN = 0x1F800100, LENGTH = 0x00000240
   /*m_text                (RX)  : ORIGIN = 0x1F800340, LENGTH = 0x0000F400*/
   /*m_text                (RX)  : ORIGIN = 0x1F800340, LENGTH = 0x0000FC00*/
-  /*m_text                (RX)  : ORIGIN = 0x1F800340, LENGTH = 0x00012800*/
-  m_text                (RX)  : ORIGIN = 0x1F800340, LENGTH = 0x00013DF8
+  m_text                (RX)  : ORIGIN = 0x1F800340, LENGTH = 0x00012800
   /*m_data                (RW)  : ORIGIN = 0x1F80F740, LENGTH = 0x00008000*/
   /*m_data                (RW)  : ORIGIN = 0x1F80FF40, LENGTH = 0x00008000*/
-  /*m_data                (RW)  : ORIGIN = 0x1F812B40, LENGTH = 0x000093C0*/
-  m_data                (RW)  : ORIGIN = 0x1F814138, LENGTH = 0x00007DC8
+  m_data                (RW)  : ORIGIN = 0x1F812B40, LENGTH = 0x000093C0
   m_dtcm		(RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
   br_data               (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }

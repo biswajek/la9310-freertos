@@ -10,7 +10,6 @@
 --------------------------------------------*/
 #include <stdint.h>
 #include "ms_global_typedef.h"
-#include "pal_types.h"
 
 /*------------------------------------------
                 DEFINES
@@ -25,8 +24,8 @@ void l1_controller_tasks_create( void );
 void l1_controller_queues_init( void );
 void l1_controller_init( void );
 void l1_controller_phytimer_init( uint8_t core_num );
-void l1_controller_vspa_in_init( uint8_t core_num );
-void l1_controller_vspa_out_init( uint8_t core_num );
+void l1_controller_host_in_init( uint8_t core_num );
+void l1_controller_host_out_init( uint8_t core_num );
 void l1_controller_modem_mgr_init( uint8_t core_num );
 void l1_controller_rf_manager_init( uint8_t core_num );
 void l1_controller_receiver_init( uint8_t core_num );
@@ -40,8 +39,8 @@ typedef enum task_id_e
     L1_PHYTIMER_HANDLER_TASK,
     L1_RX_TASK,
     L1_TX_TASK,
-    L1_VSPA_IN_TASK,
-    L1_VSPA_OUT_TASK,
+    L1_HOST_IN_TASK,
+    L1_HOST_OUT_TASK,
     L1_RF_TIMER_TASK,
     L1_UNKNOWN_TASK,
     L1_ISR,
@@ -72,9 +71,6 @@ typedef struct task_map_s
 {
     task_desc_t tasks[L1_TASK_MAX_ID];
 } task_map_t;
-
-Error_t l1_controller_wait_on_tick( task_id_t task_id, uint32_t timeout_ms );
-void l1_controller_signal_tick_tasks_from_isr( void );
 
 
 
