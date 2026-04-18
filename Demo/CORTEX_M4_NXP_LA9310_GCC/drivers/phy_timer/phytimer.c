@@ -11,6 +11,12 @@
 struct xPhyTimerRegs * regs = ( struct xPhyTimerRegs * ) ( PHY_TIMER_BASE_ADDRESS );
 
 static uint32_t ulNextPPSOUT;
+static uint32_t ulPPSOUTPeriodMs = PHY_TIMER_PPS_OUT_PULSE_DELAY;
+
+void vPhyTimerPPSOUTSetPeriodMs( uint32_t ulPeriodMs )
+{
+    ulPPSOUTPeriodMs = ulPeriodMs;
+}
 
 static uint32_t prvPhyTimerComparatorGetConfig( uint8_t ucComparator )
 {

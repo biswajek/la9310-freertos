@@ -253,6 +253,7 @@ void vPhyTimerUpdateComparator( uint8_t ucComparator, uint32_t ulTriggerValue );
  *  @Return		    None
  *
  */
+void vPhyTimerPPSOUTSetPeriodMs( uint32_t ulPeriodMs );
 void vPhyTimerPPSOUTConfig( void );
 
 /**

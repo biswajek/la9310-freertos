@@ -23,6 +23,7 @@ SET(CMAKE_EXECUTABLE_LIBRARY_SUFFIX)
 # CURRENT DIRECTORY
 SET(ProjDirPath ${CMAKE_CURRENT_SOURCE_DIR})
 SET(LA9310_COMMON_HEADERS ${ProjDirPath}/../../common_headers)
+SET(PAL_DIR ${ProjDirPath}/../../../../Platform/PAL/install/pal/freertos-cm4)
 
 # RELEASE LINK FILE
 if(TURN_ON_STANDALONE_MODE)
@@ -35,7 +36,7 @@ endif()
 SET(CMAKE_ASM_FLAGS_RELEASE "${CMAKE_ASM_FLAGS_RELEASE} -g  -mcpu=cortex-m4  -mfloat-abi=soft  -mthumb  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mapcs  -std=gnu99")
 
 # RELEASE C FLAGS
-SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g  -fno-strict-aliasing  -mcpu=cortex-m4  -mfloat-abi=soft  -mthumb  -MMD  -MP  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mapcs  -std=gnu99 -Werror")
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g  -fno-strict-aliasing  -mcpu=cortex-m4  -mfloat-abi=soft  -mthumb  -MMD  -MP  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mapcs  -std=gnu99 -Werror -Wno-address-of-packed-member")
 
 # RELEASE LD FLAGS
 SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -g  -mcpu=cortex-m4  -mfloat-abi=soft  --specs=nano.specs  -lm  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mthumb  -mapcs  -Xlinker --gc-sections  -Xlinker -static  -Xlinker -z  -Xlinker muldefs")
@@ -91,6 +92,7 @@ endif()
     INCLUDE_DIRECTORIES(${ProjDirPath}/drivers/timesync)
     INCLUDE_DIRECTORIES(${ProjDirPath}/sw_cmd_engine)
     INCLUDE_DIRECTORIES(${LA9310_COMMON_HEADERS}/)
+    INCLUDE_DIRECTORIES(${PAL_DIR}/include)
 if(LA9310_TURN_ON_COMMAND_LINE)
     INCLUDE_DIRECTORIES(${ProjDirPath}/utils/)
     INCLUDE_DIRECTORIES(${ProjDirPath}/utils/FreeRTOS-Plus-CLI-Source/)
@@ -126,6 +128,21 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/main.c"
     "${ProjDirPath}/la9310_demo.c"
     "${ProjDirPath}/la9310_irq.c"
+    "${ProjDirPath}/ms_logger.c"
+    "${ProjDirPath}/ms_globals.c"
+    "${ProjDirPath}/ms_procx_comm.c"
+    "${ProjDirPath}/ipiQueue.c"
+    "${ProjDirPath}/freertos_compat.c"
+    "${ProjDirPath}/ms_l1_controller_fwk.c"
+    "${ProjDirPath}/ms_l1c_controller.c"
+    "${ProjDirPath}/ms_l1c_modem_mgr.c"
+    "${ProjDirPath}/ms_l1c_phytimer_handler.c"
+    "${ProjDirPath}/ms_l1c_receiver.c"
+    "${ProjDirPath}/ms_l1c_rf_manager.c"
+    "${ProjDirPath}/ms_l1c_transmitter.c"
+    "${ProjDirPath}/ms_l1c_vspa_in.c"
+    "${ProjDirPath}/ms_l1c_vspa_out.c"
+
     #"${ProjDirPath}/la9310_v2h_test.c"
     #"${ProjDirPath}/bbdev_ipc_raw_demo.c"
     #"${ProjDirPath}/drivers/misc/bbdev_ipc.c"
@@ -167,6 +184,21 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/la9310_demo.c"
     "${ProjDirPath}/rfnm_rf_ctrl.c"
     "${ProjDirPath}/la9310_irq.c"
+    "${ProjDirPath}/ms_logger.c"
+    "${ProjDirPath}/ms_globals.c"
+    "${ProjDirPath}/ms_procx_comm.c"
+    "${ProjDirPath}/ipiQueue.c"
+    "${ProjDirPath}/freertos_compat.c"
+    "${ProjDirPath}/ms_l1_controller_fwk.c"
+    "${ProjDirPath}/ms_l1c_controller.c"
+    "${ProjDirPath}/ms_l1c_modem_mgr.c"
+    "${ProjDirPath}/ms_l1c_phytimer_handler.c"
+    "${ProjDirPath}/ms_l1c_receiver.c"
+    "${ProjDirPath}/ms_l1c_rf_manager.c"
+    "${ProjDirPath}/ms_l1c_transmitter.c"
+    "${ProjDirPath}/ms_l1c_vspa_in.c"
+    "${ProjDirPath}/ms_l1c_vspa_out.c"
+
     "${ProjDirPath}/la9310_v2h_test.c"
     "${ProjDirPath}/bbdev_ipc_raw_demo.c"
     "${ProjDirPath}/drivers/misc/bbdev_ipc.c"
