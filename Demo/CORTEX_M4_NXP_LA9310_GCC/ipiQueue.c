@@ -92,7 +92,7 @@ struct IPIQueue
     /** @brief Opaque cookie passed to each callback, indexed by event ID. */
     void * IPIEventCookieList[ IPI_EVT_ID_MAX ];
     /** @brief Bitmask of registered event IDs (bit N set == IPI_EVT_IDN registered). */
-    uint8_t IPIEventMux;
+    uint32_t IPIEventMux;
     /** @brief Binary semaphore protecting IPIEventCBList / IPIEventCookieList. */
     Sem_Handle_t IPIEveRegSem;
     /** @brief Binary semaphore serialising the send path. */
@@ -427,6 +427,7 @@ enum IPIEventID vIPIEventRegister( enum IPIEventID eventID,
         ret = pal_msgq_create( Queue, mqName, IPI_NOTIFY_QUEUE_SIZE, ( size_t ) sizeOfElem );
         if( ret != Success)
             log_dbg( "[EVREG] 6.Queue creation failed \r\n");
+        pxRxQueue[ eventID ] = *Queue;
         gIPIQueuePriv.IPIEventCBList[ eventID ] = NULL;
         gIPIQueuePriv.IPIEventCookieList[ eventID ] = NULL;
     }
@@ -549,6 +550,15 @@ bool vIPICoreInit( uint8_t core_id )
         log_dbg( "[IPIINIT] 4.Sem Not released \r\n");
         ret = false;
     }
+
+    /* PAL assigns handle 0 to the first queue created, but ipiQueue uses 0
+     * as a null/invalid sentinel. Consume handle 0 with a reserved queue so
+     * all real queues get handles >= 1. */
+    {
+        MsgQ_Handle_t xReservedQ;
+        pal_msgq_create( &xReservedQ, "_rsv", 1, 1 );
+    }
+
     return ret;
 }
 
