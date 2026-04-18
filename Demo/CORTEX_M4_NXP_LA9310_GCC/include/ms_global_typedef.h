@@ -84,10 +84,12 @@ typedef enum MS_MOD_SCHEME
 typedef enum MS_MSG_OPCODE
 {
 	/*---   OAM ==> CONTROLLER --- */
+	MS_MSG_OPCODE_CONTROL_MSG = 0,
 
 	/*---   CONTROLLER ==> PHY --- */
+	MS_MSG_OPCODE_BCH_SEND,
 
-	MS_MSG_OPCODE_MAX = 0
+	MS_MSG_OPCODE_MAX
 }MS_MSG_OPCODE;
 
 typedef enum
@@ -143,7 +145,8 @@ typedef struct S_GlobalDebugInfo
 {
 	uint64_t	g_Error_A;
 	uint8_t     CoreNum;
-	uint32_t    HostInQFull;  /*!< Count of messages dropped because the host-in queue was full. */
+	uint32_t    VspaInQFull;  /*!< Count of messages dropped because the VSPA-in queue was full. */
+	uint32_t    VspaOutQFull; /*!< Count of messages dropped because the VSPA-out queue was full. */
 }S_GlobalDebugInfo, * P_S_GlobalDebugInfo;
 
 /*----------------------------------------------------------------------------
@@ -160,6 +163,8 @@ typedef struct S_UNIFIED_MSG_BUFF
 {
     MS_MSG_OPCODE   opcode;   /*!< Message operation code. */
     void           *payload;  /*!< Pointer to message-specific data. */
+	uint8_t         camera_id;
+	uint32_t        time;
 } S_UNIFIED_MSG_BUFF;
 
 

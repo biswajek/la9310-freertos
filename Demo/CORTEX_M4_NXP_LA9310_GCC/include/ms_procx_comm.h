@@ -25,8 +25,8 @@ typedef enum
 {
     MDMMGR_XC_ID,
     TIMER_HANDLER_XC_ID,
-    HOST_IN_XC_ID,
-    HOST_OUT_XC_ID,
+    VSPA_IN_XC_ID,
+    VSPA_OUT_XC_ID,
     RX_XC_ID,
     TX_XC_ID,
     LOG_XC_ID,
