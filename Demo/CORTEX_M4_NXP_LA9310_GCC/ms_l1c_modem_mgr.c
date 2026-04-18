@@ -6,11 +6,13 @@
                 INCLUDES
 --------------------------------------------*/
 #include <stdbool.h>
+#include <string.h>
 #include "pal_sem.h"
 #include "bbdev_ipc.h"
 #include "ms_global_typedef.h"
 #include "ms_procx_comm.h"
 #include "ms_l1c_controller.h"
+#include "ms_logger.h"
 #include "ms_l1c_modem_mgr.h"
 
 /*------------------------------------------
@@ -20,6 +22,7 @@
 #define MAX_CAMERA_ID                5U
 #define MODEM_MGR_IPC_DEV_ID         0U
 #define MODEM_MGR_HOST_TO_MODEM_Q    0U
+#define MODEM_MGR_MODEM_TO_HOST_Q    1U
 
 /*------------------------------------------
                 VARIABLES
@@ -29,11 +32,72 @@ typedef void (*modem_mgr_ipc_msg_cb_t)( void *data );
 static uint32_t modem_slot_count;
 static uint32_t modem_frame_count;
 static bool modem_mgr_ipc_queue_configured;
+static bool modem_mgr_m2h_queue_configured;
 static modem_mgr_ipc_msg_cb_t modem_mgr_host_ipc_cbs[MS_MSG_OPCODE_MAX];
 
 /*------------------------------------------
                 FUNCTIONS
 --------------------------------------------*/
+
+/**
+ * @brief Sends a message to the host via the Modem->Host bbdev IPC queue.
+ *
+ * Lazily configures the queue on first use.  Drops the message silently if the
+ * host-side queue is not yet ready or no internal buffer is available.
+ *
+ * @param[in] msg  Message to forward to the host.
+ */
+static void modem_mgr_send_to_host( const S_UNIFIED_MSG_BUFF *msg )
+{
+    struct bbdev_ipc_raw_op_t raw_op;
+    void    *buf;
+    uint32_t buf_len;
+    int      ret;
+
+    if( msg == NULL )
+    {
+        return;
+    }
+
+    if( modem_mgr_m2h_queue_configured == false )
+    {
+        ret = bbdev_ipc_queue_configure( MODEM_MGR_IPC_DEV_ID, MODEM_MGR_MODEM_TO_HOST_Q );
+        if( ret == IPC_SUCCESS )
+        {
+            modem_mgr_m2h_queue_configured = true;
+        }
+        else
+        {
+            log_err( "[MODEMMGR] M2H queue not ready\r\n" );
+            return;
+        }
+    }
+
+    buf = bbdev_ipc_get_next_internal_buf( MODEM_MGR_IPC_DEV_ID,
+                                           MODEM_MGR_MODEM_TO_HOST_Q, &buf_len );
+    if( ( buf == NULL ) || ( buf_len < sizeof( S_UNIFIED_MSG_BUFF ) ) )
+    {
+        log_err( "[MODEMMGR] No M2H buffer available\r\n" );
+        return;
+    }
+
+    memcpy( buf, msg, sizeof( S_UNIFIED_MSG_BUFF ) );
+
+    raw_op.in_addr  = (uint32_t) buf;
+    raw_op.in_len   = sizeof( S_UNIFIED_MSG_BUFF );
+    raw_op.out_addr = 0U;
+    raw_op.out_len  = 0U;
+
+    ret = bbdev_ipc_enqueue_raw_op( MODEM_MGR_IPC_DEV_ID, MODEM_MGR_MODEM_TO_HOST_Q, &raw_op );
+    if( ret != IPC_SUCCESS )
+    {
+        log_err( "[MODEMMGR] Failed to enqueue M2H message (ret=%d)\r\n", ret );
+    }
+    else
+    {
+        log_info( "[MODEMMGR] CTRL_ACK forwarded to host\r\n" );
+    }
+}
 
 /**
  * @brief Dequeues and dispatches Host->Modem IPC messages to modem-manager handlers.
@@ -109,6 +173,10 @@ void modem_mgr_cb_xc( procx_comm_id_e src_proc, void *data )
         case VSPA_OUT_XC_ID:
             break;
         case RX_XC_ID:
+            if( ( msg != NULL ) && ( msg->opcode == MS_MSG_OPCODE_CTRL_ACK ) )
+            {
+                modem_mgr_send_to_host( msg );
+            }
             break;
         case TX_XC_ID:
             break;
@@ -229,6 +297,7 @@ void l1_controller_modem_mgr_init( uint8_t core_num )
     modem_slot_count = 0U;
     modem_frame_count = 0U;
     modem_mgr_ipc_queue_configured = false;
+    modem_mgr_m2h_queue_configured = false;
 
     for( i = 0U; i < MS_MSG_OPCODE_MAX; i++ )
     {

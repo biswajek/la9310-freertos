@@ -203,6 +203,8 @@ void *receiver_task( void *arg )
                     {
                         log_info( "[RECEIVER] CTRL_ACK received\r\n" );
                         rx_ctrl_ack_pending = false;
+                        /* Notify modem manager so it can relay the ACK to the host. */
+                        (void) procx_comm( RX_XC_ID, MDMMGR_XC_ID, &rx_msg );
                     }
                     break;
 
