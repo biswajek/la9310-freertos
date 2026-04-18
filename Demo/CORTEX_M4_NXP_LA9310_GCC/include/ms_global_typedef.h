@@ -89,6 +89,12 @@ typedef enum MS_MSG_OPCODE
 	/*---   CONTROLLER ==> PHY --- */
 	MS_MSG_OPCODE_BCH_SEND,
 
+	/*---   TX ==> RX : control message was sent over the air --- */
+	MS_MSG_OPCODE_CTRL_MSG_SENT,
+
+	/*---   VSPA_IN ==> RX : ACK received over the air --- */
+	MS_MSG_OPCODE_CTRL_ACK,
+
 	MS_MSG_OPCODE_MAX
 }MS_MSG_OPCODE;
 

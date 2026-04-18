@@ -25,6 +25,7 @@
 #include "ms_l1c_modem_mgr.h"
 #include "ms_procx_comm.h"
 #include "ms_l1c_transmitter.h"
+#include "ms_l1c_receiver.h"
 
 /*------------------------------------------
                 DEFINES
@@ -205,6 +206,15 @@ void *transmitter_task( void *arg )
         {
             transmitter_send_control_over_air( &pending_ctrl_msg );
             pending_ctrl_msg_valid = false;
+
+            /* Notify RX thread that the control message has gone over the air. */
+            S_UNIFIED_MSG_BUFF ind = {
+                .opcode    = MS_MSG_OPCODE_CTRL_MSG_SENT,
+                .payload   = NULL,
+                .camera_id = pending_ctrl_msg.camera_id,
+                .time      = current_frame,
+            };
+            (void) procx_comm( TX_XC_ID, RX_XC_ID, &ind );
         }
 
     }

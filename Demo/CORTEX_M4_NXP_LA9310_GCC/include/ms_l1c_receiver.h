@@ -20,6 +20,19 @@
 #include "ms_procx_comm.h"
 
 /*------------------------------------------
+                DEFINES
+--------------------------------------------*/
+
+/**
+ * @brief Number of frames the RX thread waits for a CTRL_ACK before giving up.
+ *
+ * Configurable at compile time via -DCTRL_ACK_TIMEOUT_FRAMES=<n>.
+ */
+#ifndef CTRL_ACK_TIMEOUT_FRAMES
+#define CTRL_ACK_TIMEOUT_FRAMES  10U
+#endif
+
+/*------------------------------------------
                 VARIABLES
 --------------------------------------------*/
 
@@ -43,6 +56,13 @@ extern proc_queue_t receiver_q;
  * @param[in] data      Pointer to the message payload (@c S_UNIFIED_MSG_BUFF).
  */
 void receiver_cb_xc( procx_comm_id_e src_proc, void *data );
+
+/**
+ * @brief Initializes the L1 receiver subsystem.
+ *
+ * @param[in] core_num  Core number on which this subsystem runs.
+ */
+void l1_controller_receiver_init( uint8_t core_num );
 
 /**
  * @brief Task entry point for receiver processing.
