@@ -1,3 +1,0 @@
-/home/biswajex/DivyaDrishti/external/la9310-freertos/Demo/CORTEX_M4_NXP_LA9310_GCC/tests/qemu/build/CMakeFiles/ipc_test.dir
-/home/biswajex/DivyaDrishti/external/la9310-freertos/Demo/CORTEX_M4_NXP_LA9310_GCC/tests/qemu/build/CMakeFiles/edit_cache.dir
-/home/biswajex/DivyaDrishti/external/la9310-freertos/Demo/CORTEX_M4_NXP_LA9310_GCC/tests/qemu/build/CMakeFiles/rebuild_cache.dir
