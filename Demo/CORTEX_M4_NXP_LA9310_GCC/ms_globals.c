@@ -9,7 +9,7 @@
 #include "ms_globals.h"
 #include "ms_logger.h"
 
-S_GlobalDebugInfo	g_GlobalDebugInfo = {
+volatile S_GlobalDebugInfo	g_GlobalDebugInfo = {
     .g_Error_A = 0,
 	.CoreNum = 0,
 };

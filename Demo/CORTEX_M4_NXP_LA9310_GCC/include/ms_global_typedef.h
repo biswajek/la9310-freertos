@@ -143,11 +143,24 @@ typedef struct S_GlobalDebugInfo
 {
 	uint64_t	g_Error_A;
 	uint8_t     CoreNum;
+	uint32_t    HostInQFull;  /*!< Count of messages dropped because the host-in queue was full. */
 }S_GlobalDebugInfo, * P_S_GlobalDebugInfo;
 
 /*----------------------------------------------------------------------------
                         MSG DATA STRUCTURE
 ------------------------------------------------------------------------------*/
+
+/**
+ * @brief Unified inter-task message buffer.
+ *
+ * Placeholder structure passed between L1 subsystems via proc queues.
+ * Extend with opcode and payload fields as data paths are defined.
+ */
+typedef struct S_UNIFIED_MSG_BUFF
+{
+    MS_MSG_OPCODE   opcode;   /*!< Message operation code. */
+    void           *payload;  /*!< Pointer to message-specific data. */
+} S_UNIFIED_MSG_BUFF;
 
 
 

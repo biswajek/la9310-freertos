@@ -2,30 +2,112 @@
  * Mundo Sense
  */
 
+/**
+ * @file ms_l1c_host_in.c
+ * @brief L1 controller host-input subsystem.
+ *
+ * Manages inbound data from the host (PCIe/IPC interface) to the L1
+ * controller.  Provides a PAL message queue (@c host_in_q) that buffers
+ * incoming @c S_UNIFIED_MSG_BUFF messages and a cross-task callback
+ * (@c host_in_cb_xc) that dispatches to the queue based on the source
+ * processor ID.
+ */
+
 /*------------------------------------------
                 INCLUDES
 --------------------------------------------*/
-
+#include <stdbool.h>
+#include <stddef.h>
+#include "pal_types.h"
+#include "ms_global_typedef.h"
+#include "ms_globals.h"
+#include "ms_logger.h"
+#include "ms_l1c_controller.h"
+#include "ms_l1_controller_fwk.h"
+#include "ms_procx_comm.h"
 
 /*------------------------------------------
-                PROTOTYPES
+                DEFINES
 --------------------------------------------*/
+
+/** @brief PAL queue name for the host-input message queue. */
+#define MS_HOSTIN_QUEUE_NAME     "hostInQ"
 
 /*------------------------------------------
                 VARIABLES
 --------------------------------------------*/
+
+/** @brief PAL proc queue that buffers host-input messages for the L1 controller. */
+proc_queue_t host_in_q;
 
 /*------------------------------------------
                 FUNCTIONS
 --------------------------------------------*/
 
 /**
- * @brief Initializes the host input interface for the L1 controller.
+ * @brief Cross-task callback invoked when a message arrives for the host-in processor.
  *
- * Sets up resources (tasks, queues, buffers) required to receive data
- * from the host over the PCIe/IPC interface. Placeholder — implementation
- * to be added when the host-in data path is defined.
+ * Dispatches on @p src_proc.  For @c L2_TEST_XC_ID the message payload is
+ * forwarded into @c host_in_q via @c send_cmd_to_proc().  All other source
+ * IDs are silently ignored (placeholder for future handling).
+ *
+ * @param[in] src_proc  Source processor ID that sent the message.
+ * @param[in] data      Pointer to an @c S_UNIFIED_MSG_BUFF payload.
+ *                      Caller retains ownership; the contents are copied
+ *                      into the PAL queue before this function returns.
  */
-void l1_controller_host_in_init(){
-    return;
+void host_in_cb_xc( procx_comm_id_e src_proc, void *data )
+{
+    Error_t err = Success;
+
+    switch( src_proc )
+    {
+        case MDMMGR_XC_ID:
+            break;
+        case TIMER_HANDLER_XC_ID:
+            break;
+        case HOST_IN_XC_ID:
+            break;
+        case HOST_OUT_XC_ID:
+            break;
+        case RX_XC_ID:
+            break;
+        case TX_XC_ID:
+            break;
+        case LOG_XC_ID:
+            break;
+        case SLOT_INTR_XC_ID:
+            break;
+        case RSSI_INTR_XC_ID:
+            break;
+        case L2_TEST_XC_ID:
+            err = send_cmd_to_proc( &host_in_q, data, sizeof( S_UNIFIED_MSG_BUFF ) );
+            if( err != Success )
+            {
+                g_GlobalDebugInfo.HostInQFull++;
+                log_err( "[HOST IN] Msg from TEST FW not pushed in queue\r\n" );
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+/**
+ * @brief Initializes the host-input subsystem for the L1 controller.
+ *
+ * Creates the host-in PAL message queue via @c init_proc_cmd_queue() and
+ * registers @c host_in_cb_xc as the cross-task receive handler for
+ * @c HOST_IN_XC_ID.  Must be called once during system startup on the core
+ * identified by @p core_num before the FreeRTOS scheduler starts.
+ *
+ * @param[in] core_num  Core number on which this subsystem runs.
+ */
+void l1_controller_host_in_init( uint8_t core_num )
+{
+    init_proc_cmd_queue( &host_in_q, (core_id_t) core_num,
+                         sizeof( S_UNIFIED_MSG_BUFF ), MS_HOSTIN_QUEUE_NAME );
+
+    /* Register inter-task communication handler */
+    procx_comm_reg( host_in_cb_xc, HOST_IN_XC_ID );
 }

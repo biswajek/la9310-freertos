@@ -91,8 +91,6 @@ void l1_create_task(uint32_t core_id, task_id_t task_id, const char *const task_
     }
 }
 
-
-
 /**
  * @brief Creates all L1 controller subsystem tasks.
  *
@@ -102,15 +100,7 @@ void l1_create_task(uint32_t core_id, task_id_t task_id, const char *const task_
  */
 void l1_controller_tasks_create( ){
     
-    l1_controller_phytimer_init();
-    l1_controller_host_in_init();
-    l1_controller_host_out_init();
-    l1_controller_modem_mgr_init();
-    l1_controller_rf_manager_init();
-    l1_controller_receiver_init();
-    l1_controller_transmitter_init();
-
-    
+   
     return;
 } 
 
@@ -122,10 +112,30 @@ void l1_controller_tasks_create( ){
  * when inter-task data paths are defined.
  */
 void l1_controller_queues_init( ){
-
+   
+    l1_controller_host_in_init( g_GlobalDebugInfo.CoreNum );
+    l1_controller_host_out_init( g_GlobalDebugInfo.CoreNum);
+    l1_controller_modem_mgr_init( g_GlobalDebugInfo.CoreNum );
+    l1_controller_receiver_init( g_GlobalDebugInfo.CoreNum );
+    l1_controller_transmitter_init( g_GlobalDebugInfo.CoreNum );
     return;
-
 }
 
-
+/**
+ * @brief Initializes the L1 controller subsystem by creating tasks and queues.
+ *
+ * Initializes the RF and timer subsystems, then sets up inter-task queues
+ * and creates all L1 controller tasks.  Must be called once during startup
+ * before the FreeRTOS scheduler is started.
+ */
+void l1_controller_init( void )
+{
+    /* Init RF and Timer subsystem */
+    l1_controller_phytimer_init( g_GlobalDebugInfo.CoreNum );
+    l1_controller_rf_manager_init( g_GlobalDebugInfo.CoreNum );
+    /* Initialize L1 Controller Task Queues */
+    l1_controller_queues_init();
+    /* Create L1 Controller Tasks */
+    l1_controller_tasks_create();
+}
 

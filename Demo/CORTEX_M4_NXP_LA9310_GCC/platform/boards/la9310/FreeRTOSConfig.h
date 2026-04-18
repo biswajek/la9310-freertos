@@ -109,10 +109,10 @@ Set configCPU_CLOCK_HZ for 245760000
 #define configUSE_MUTEXES                 1
 #define configQUEUE_REGISTRY_SIZE         8
 #define configCHECK_FOR_STACK_OVERFLOW    0
-#define configUSE_RECURSIVE_MUTEXES       0
+#define configUSE_RECURSIVE_MUTEXES       1
 #define configUSE_MALLOC_FAILED_HOOK      0
 #define configUSE_APPLICATION_TASK_TAG    0
-#define configUSE_COUNTING_SEMAPHORES     0
+#define configUSE_COUNTING_SEMAPHORES     1
 #define configGENERATE_RUN_TIME_STATS     0
 #define configUSE_TASK_NOTIFICATIONS	  1
 /* Co-routine definitions. */

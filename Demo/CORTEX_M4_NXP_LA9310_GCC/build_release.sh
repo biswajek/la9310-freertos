@@ -2,6 +2,17 @@
 #SPDX-License-Identifier: GPLv2 BSD-3-Clause
 #Copyright 2022 NXP
 
+# Auto-detect ARMGCC_DIR from the arm-none-eabi-gcc on PATH if not already set
+if [ -z "$ARMGCC_DIR" ]; then
+    _COMPILER=$(which arm-none-eabi-gcc 2>/dev/null)
+    if [ -z "$_COMPILER" ]; then
+        echo "Error: arm-none-eabi-gcc not found. Install the toolchain or set ARMGCC_DIR."
+        exit 1
+    fi
+    export ARMGCC_DIR=$(dirname $(dirname "$_COMPILER"))
+    echo "Auto-detected ARMGCC_DIR=$ARMGCC_DIR"
+fi
+
 boot_mode=pcie
 
 if [ "$#" != "1" ]; then
@@ -11,7 +22,7 @@ if [ "$#" != "1" ]; then
         echo "./build_release.sh -boot_mode=pci"
 else
 	file="include/la9310_boot_mode.h"
-	unlink $file
+	[ -f "$file" ] && unlink "$file"
 
 	i2c_boot=`echo "$*" | grep -i "boot_mode=I2c"`
 	[ -n "$i2c_boot" ] && {
@@ -28,4 +39,4 @@ else
 	fi
 fi
 make -j4
-unlink $file
+[ -f "$file" ] && unlink "$file"

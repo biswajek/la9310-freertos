@@ -129,6 +129,10 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/la9310_demo.c"
     "${ProjDirPath}/la9310_irq.c"
     "${ProjDirPath}/ms_logger.c"
+    "${ProjDirPath}/ms_globals.c"
+    "${ProjDirPath}/ms_l1_controller_fwk.c"
+    "${ProjDirPath}/ipiQueue.c"
+    "${ProjDirPath}/ms_procx_comm.c"
     "${ProjDirPath}/ms_l1c_controller.c"
     "${ProjDirPath}/ms_l1c_rf_manager.c"
     "${ProjDirPath}/ms_l1c_receiver.c"
@@ -152,6 +156,7 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/drivers/timesync/sync_timing_device.c"
     "${ProjDirPath}/sw_cmd_engine/sw_cmd_engine.c"
     "${ProjDirPath}/utils/delay.c"
+    "${ProjDirPath}/freertos_compat.c"
   )
 else()
 SET(LA9310_SOURCES
@@ -176,6 +181,10 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/platform/boards/la9310/hardware_init.c"
     "${ProjDirPath}/main.c"
     "${ProjDirPath}/ms_logger.c"
+    "${ProjDirPath}/ms_globals.c"
+    "${ProjDirPath}/ms_l1_controller_fwk.c"
+    "${ProjDirPath}/ipiQueue.c"
+    "${ProjDirPath}/ms_procx_comm.c"
     "${ProjDirPath}/ms_l1c_controller.c"
     "${ProjDirPath}/ms_l1c_rf_manager.c"
     "${ProjDirPath}/ms_l1c_receiver.c"
@@ -201,6 +210,7 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/drivers/timesync/sync_timing_device.c"
     "${ProjDirPath}/sw_cmd_engine/sw_cmd_engine.c"
     "${ProjDirPath}/utils/delay.c"
+    "${ProjDirPath}/freertos_compat.c"
   )
 endif()
 if(DCS)
