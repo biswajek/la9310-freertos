@@ -30,6 +30,7 @@ void vSocInit( void );
 void vBoardEarlyInit( void );
 void vBoardFinalInit( void );
 void vSocResetHandshake( void );
+struct la9310_info;
 void vLa9310_do_handshake( struct la9310_info * vLa9310Info );
 void vLa9310_Read_Board_Rev_pca9570(void);
 int iLa9310_Get_Board_Rev(void);

@@ -28,6 +28,8 @@ SET(PAL_DIR ${ProjDirPath}/../../../../Platform/PAL/install/pal/freertos-cm4)
 # RELEASE LINK FILE
 if(TURN_ON_STANDALONE_MODE)
        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -T${ProjDirPath}/platform/ARM_CM4/la9310_standalone_i2c_mode.ld  -static")
+elseif(TEST_L1C_TASKS)
+       set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -T${ProjDirPath}/platform/ARM_CM4/la9310_host_pcie_test_mode.ld  -static")
 else()
        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -T${ProjDirPath}/platform/ARM_CM4/la9310_host_pcie_mode.ld  -static")
 endif()
@@ -55,6 +57,12 @@ SET(RFIC ON)
 
 # Enable/Disable DCS driver
 SET(DCS ON)
+
+# TEST_L1C_TASKS brings in all L1C stack code; disable RFIC/DCS to stay within flash budget
+if(TEST_L1C_TASKS)
+    SET(RFIC OFF)
+    SET(DCS OFF)
+endif()
 
 # Enable/Disable DAC
 SET(DAC ON)
@@ -259,6 +267,9 @@ SET_TARGET_PROPERTIES(la9310 PROPERTIES OUTPUT_NAME "la9310.elf")
 
 TARGET_LINK_LIBRARIES(la9310 -Wl,--start-group)
 # LIBRARIES
+if(TEST_L1C_TASKS)
+    TARGET_LINK_LIBRARIES(la9310 ${PAL_DIR}/lib/libPAL.a)
+endif()
 
 # SYSTEM LIBRARIES
 TARGET_LINK_LIBRARIES(la9310 m)

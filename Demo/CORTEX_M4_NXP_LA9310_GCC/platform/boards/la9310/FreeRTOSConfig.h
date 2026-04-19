@@ -109,10 +109,18 @@ Set configCPU_CLOCK_HZ for 245760000
 #define configUSE_MUTEXES                 1
 #define configQUEUE_REGISTRY_SIZE         8
 #define configCHECK_FOR_STACK_OVERFLOW    0
+#ifdef TEST_L1C_TASKS
+#define configUSE_RECURSIVE_MUTEXES       1
+#else
 #define configUSE_RECURSIVE_MUTEXES       0
+#endif
 #define configUSE_MALLOC_FAILED_HOOK      0
 #define configUSE_APPLICATION_TASK_TAG    0
+#ifdef TEST_L1C_TASKS
+#define configUSE_COUNTING_SEMAPHORES     1
+#else
 #define configUSE_COUNTING_SEMAPHORES     0
+#endif
 #define configGENERATE_RUN_TIME_STATS     0
 #define configUSE_TASK_NOTIFICATIONS	  1
 /* Co-routine definitions. */
@@ -138,7 +146,11 @@ Set configCPU_CLOCK_HZ for 245760000
 to exclude the API function. */
 #define INCLUDE_vTaskPrioritySet          1
 #define INCLUDE_uxTaskPriorityGet         1
+#ifdef TEST_L1C_TASKS
+#define INCLUDE_vTaskDelete               1
+#else
 #define INCLUDE_vTaskDelete               0
+#endif
 #define INCLUDE_vTaskCleanUpResources     0
 #define INCLUDE_vTaskSuspend              1
 #define INCLUDE_vTaskDelayUntil           0
