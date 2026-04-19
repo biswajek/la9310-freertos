@@ -125,6 +125,8 @@ void *vspa_in_task( void *arg )
 {
     (void) arg;
 
+    log_info( "[VSPA IN] task started\r\n" );
+
     for( ; ; )
     {
         /* Placeholder loop until VSPA input processing is wired. */

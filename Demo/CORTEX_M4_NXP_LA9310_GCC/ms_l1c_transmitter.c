@@ -172,6 +172,8 @@ void *transmitter_task( void *arg )
 
     (void) arg;
 
+    log_info( "[TRANSMITTER] task started\r\n" );
+
     for( ; ; )
     {
         /* Wait for first queue message, then drain all currently queued messages. */

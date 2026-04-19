@@ -176,6 +176,8 @@ void *receiver_task( void *arg )
 
     (void) arg;
 
+    log_info( "[RECEIVER] task started\r\n" );
+
     for( ; ; )
     {
         /* Drain all currently queued messages. */

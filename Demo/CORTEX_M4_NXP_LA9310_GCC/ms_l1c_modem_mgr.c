@@ -253,6 +253,8 @@ void *modem_mgr_task( void *arg )
 
     (void) arg;
 
+    log_info( "[MODEM MGR] task started\r\n" );
+
     tx_msg.payload = NULL;
 
     for( ; ; )

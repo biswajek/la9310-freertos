@@ -7,6 +7,7 @@
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
 /* Standard includes. */
 #include <stdint.h>
@@ -33,6 +34,11 @@
     #include "rfic_api.h"
 #endif
 #include "../drivers/avi/la9310_vspa_dma.h"
+#include "ms_l1c_controller.h"
+#include "ms_procx_comm.h"
+#include "ms_global_typedef.h"
+#include "ms_globals.h"
+#include "ms_l1c_modem_mgr.h"
 
 extern void switch_rf(uint32_t mode);
 
@@ -70,6 +76,11 @@ enum eLa9310TestCmdID
 #endif
     TEST_RX_TO_TX = 20,
     TEST_TX_TO_RX = 21,
+#ifdef TEST_L1C_TASKS
+    TEST_TASK_CREATE = 22,
+    TEST_QUEUE_IPC = 23,
+    TEST_MODEM_MGR_TIMER = 24,
+#endif
     MAX_TEST_CMDS
 };
 
@@ -116,13 +127,20 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To verify CRC of images (test 19)",
 #endif
     " Switch Rx->Tx (test 20)",
-    " Switch Tx->Rx (test 21)"
+    " Switch Tx->Rx (test 21)",
+#ifdef TEST_L1C_TASKS
+    " Create L1 tasks: init proc queues then create modemMgr/vspaIn/vspaOut/RX/TX tasks (test 22)",
+    " Inter-task queue IPC via procx_comm: 0=MDMMGR->TX 1=TX->RX 2=VSPA_IN->RX other=all (test 23 <path>)",
+    " Activate modem-mgr via phytimer: init phy timer PPS-OUT (10ms tick) then sample slot/frame count (test 24 <sample_iter>)"
+#endif
 };
 
 
 static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
                                  size_t xWriteBufferLen,
                                  const char * pcCommandString );
+
+/*-----------------------------------------------------------*/
 
 static const CLI_Command_Definition_t xNLMTestCommand =
 {
@@ -438,6 +456,89 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 		case TEST_TX_TO_RX:
 			switch_rf(0xBBBBBBBB);
 			break;
+
+#ifdef TEST_L1C_TASKS
+		case TEST_TASK_CREATE:
+			/* Initialise procx callbacks + proc queues for all five L1 tasks,
+			 * then create modemMgrTask, vspaInTask, vspaOutTask, receiverTask,
+			 * transmitterTask via the L1 controller.  Modem-mgr is tick-driven;
+			 * the rest are event-driven via their proc queues.
+			 * Use test 24 to start the phy timer tick after tasks are running. */
+			PRINTF( "[L1C] Initialising proc queues (vspaIn, vspaOut, modemMgr, RX, TX)\r\n" );
+			l1_controller_queues_init();
+			PRINTF( "[L1C] Creating tasks: modemMgrTask vspaInTask vspaOutTask receiverTask transmitterTask\r\n" );
+			l1_controller_tasks_create();
+			PRINTF( "[L1C] Task creation complete\r\n" );
+			break;
+
+		case TEST_QUEUE_IPC:
+			/* Test inter-task communication via procx_comm for a chosen path.
+			 * Param2 selects path:
+			 *   0 = MDMMGR -> TX  (MS_MSG_OPCODE_CONTROL_MSG)
+			 *   1 = TX -> RX      (MS_MSG_OPCODE_CTRL_MSG_SENT)
+			 *   2 = VSPA_IN -> RX (MS_MSG_OPCODE_CTRL_ACK)
+			 *   other = all three paths in sequence */
+		{
+			S_UNIFIED_MSG_BUFF xTestMsg;
+			bool bOk;
+
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+
+			if( ( ulTempVal2 == 0 ) || ( ulTempVal2 > 2 ) )
+			{
+				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
+				xTestMsg.opcode = MS_MSG_OPCODE_CONTROL_MSG;
+				xTestMsg.camera_id = 0;
+				bOk = procx_comm( TX_XC_ID, MDMMGR_XC_ID, &xTestMsg );
+				PRINTF( "[QueueIPC] MDMMGR->TX (CONTROL_MSG): %s\r\n", bOk ? "ok" : "FAIL" );
+			}
+
+			if( ( ulTempVal2 == 1 ) || ( ulTempVal2 > 2 ) )
+			{
+				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
+				xTestMsg.opcode = MS_MSG_OPCODE_CTRL_MSG_SENT;
+				bOk = procx_comm( RX_XC_ID, TX_XC_ID, &xTestMsg );
+				PRINTF( "[QueueIPC] TX->RX (CTRL_MSG_SENT): %s\r\n", bOk ? "ok" : "FAIL" );
+			}
+
+			if( ( ulTempVal2 == 2 ) || ( ulTempVal2 > 2 ) )
+			{
+				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
+				xTestMsg.opcode = MS_MSG_OPCODE_CTRL_ACK;
+				bOk = procx_comm( RX_XC_ID, VSPA_IN_XC_ID, &xTestMsg );
+				PRINTF( "[QueueIPC] VSPA_IN->RX (CTRL_ACK): %s\r\n", bOk ? "ok" : "FAIL" );
+			}
+
+			break;
+		}
+
+		case TEST_MODEM_MGR_TIMER:
+			/* Configure phy timer PPS-OUT (10 ms period) which drives the
+			 * modem-manager tick semaphore via vL1cPhyTimerTickHook() -> ISR.
+			 * Param2 = number of slot/frame samples to print after init. */
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			if( ulTempVal2 == 0 )
+				ulTempVal2 = 5;
+
+			PRINTF( "[ModemMgrTimer] configuring phytimer PPS-OUT (10 ms tick) for core %u\r\n",
+					( unsigned int ) g_GlobalDebugInfo.CoreNum );
+			l1_controller_phytimer_init( ( uint8_t ) g_GlobalDebugInfo.CoreNum );
+			PRINTF( "[ModemMgrTimer] phytimer active - sampling slot/frame count %lu times\r\n",
+					( unsigned long ) ulTempVal2 );
+
+			for( i = 0; i < ulTempVal2; i++ )
+			{
+				uint32_t ulSlot, ulFrame;
+				modem_mgr_get_slot_frame_count( &ulSlot, &ulFrame );
+				PRINTF( "[ModemMgrTimer] sample %lu: frame=%lu slot=%lu\r\n",
+						( unsigned long ) i, ( unsigned long ) ulFrame, ( unsigned long ) ulSlot );
+				vTaskDelay( pdMS_TO_TICKS( 50 ) );
+			}
+			break;
+#endif /* TEST_L1C_TASKS */
+
 		default:
 
 			for( ulCmd = 0; ulCmd < MAX_TEST_CMDS; ulCmd++ )

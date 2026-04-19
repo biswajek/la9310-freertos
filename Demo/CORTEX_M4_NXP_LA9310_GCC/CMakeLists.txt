@@ -47,6 +47,9 @@ SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 #Enable/Disable command line
 SET(LA9310_TURN_ON_COMMAND_LINE ON)
 
+# Enable L1C task/queue/timer CLI tests (requires libPAL.a linked separately)
+option(TEST_L1C_TASKS "Enable CLI tests for L1C task creation, queue IPC, and phytimer" OFF)
+
 # Enable/Disable RFIC driver
 SET(RFIC ON)
 
@@ -73,6 +76,10 @@ endif()
 
 if(DAC)
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DDAC")
+endif()
+
+if(TEST_L1C_TASKS)
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DTEST_L1C_TASKS")
 endif()
 
 # CXX MACRO
@@ -252,9 +259,6 @@ SET_TARGET_PROPERTIES(la9310 PROPERTIES OUTPUT_NAME "la9310.elf")
 
 TARGET_LINK_LIBRARIES(la9310 -Wl,--start-group)
 # LIBRARIES
-#IF(CMAKE_BUILD_TYPE MATCHES Debug)
-#ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
-#ENDIF()
 
 # SYSTEM LIBRARIES
 TARGET_LINK_LIBRARIES(la9310 m)
