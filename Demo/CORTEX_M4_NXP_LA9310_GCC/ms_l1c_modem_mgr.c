@@ -61,6 +61,11 @@ static void modem_mgr_send_to_host( const S_UNIFIED_MSG_BUFF *msg )
 
     if( modem_mgr_m2h_queue_configured == false )
     {
+        if( bbdev_ipc_is_host_initialized( MODEM_MGR_IPC_DEV_ID ) == 0 )
+        {
+            return;
+        }
+
         ret = bbdev_ipc_queue_configure( MODEM_MGR_IPC_DEV_ID, MODEM_MGR_MODEM_TO_HOST_Q );
         if( ret == IPC_SUCCESS )
         {
@@ -115,6 +120,11 @@ static void modem_mgr_process_host_ipc_messages( void )
 
     if( modem_mgr_ipc_queue_configured == false )
     {
+        if( bbdev_ipc_is_host_initialized( MODEM_MGR_IPC_DEV_ID ) == 0 )
+        {
+            return;
+        }
+
         /* Configure queue once; retry on later ticks if host side is not ready yet. */
         if( bbdev_ipc_queue_configure( MODEM_MGR_IPC_DEV_ID, MODEM_MGR_HOST_TO_MODEM_Q ) == IPC_SUCCESS )
         {

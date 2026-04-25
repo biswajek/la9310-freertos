@@ -26,6 +26,13 @@
 #include "ms_l1c_modem_mgr.h"
 
 
+/* TEST_L1C_TASKS creates every L1C task at once on a small FreeRTOS heap. */
+#ifdef TEST_L1C_TASKS
+#define L1C_TASK_STACK_SIZE_BYTES (1024U * 2U)
+#else
+#define L1C_TASK_STACK_SIZE_BYTES (1024U * 4U)
+#endif
+
 /*------------------------------------------
                 VARIABLES
 --------------------------------------------*/
@@ -57,6 +64,7 @@ void l1_create_task(uint32_t core_id, task_id_t task_id, const char *const task_
 {
     Error_t ret = Success;
     char tickSemName[32];
+    Thread_Handle_t threadHandle = 0U;
     
     tasks_map.tasks[task_id].core_id = core_id;
     tasks_map.tasks[task_id].task_id = task_id;
@@ -64,7 +72,7 @@ void l1_create_task(uint32_t core_id, task_id_t task_id, const char *const task_
 
     Thread_Attributes_t tAttr = {
         //.stackSize = configMINIMAL_STACK_SIZE * 4,
-        .stackSize = 1024 * 4,
+        .stackSize = L1C_TASK_STACK_SIZE_BYTES,
         .priority = task_priority,
         .schedPolicy = E_SCHED_DEFAULT,
     };
@@ -89,10 +97,10 @@ void l1_create_task(uint32_t core_id, task_id_t task_id, const char *const task_
             tick_tasks_count++;
         }
 
-        ret = pal_thread_create( (Thread_Handle_t*)&tasks_map.tasks[task_id].task_id, task_name,
+        ret = pal_thread_create( &threadHandle, task_name,
                                     (Thread_Callback_t) pxTaskCode, tAttr, NULL);
         if( ret != Success )
-            log_err("[L1_CTRL] Task Creation Failure \r\n");
+            log_err("[L1_CTRL] Task Creation Failure for %s (ret=%d)\r\n", task_name, ret);
         else                                       
             log_info("[L1_CTRL] Created task %s with id %d\r\n", task_name, task_id);
     }
