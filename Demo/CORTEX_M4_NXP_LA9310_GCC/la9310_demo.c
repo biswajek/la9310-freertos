@@ -39,6 +39,21 @@
 #define OVERLAY_SECTION_OFFSET    0x00  /*TBD*/
 #define DEBUG_HEX_DUMP
 
+#define L1C_VSPA_CMD_FFT_SELFTEST    0x25000000UL
+#define L1C_VSPA_ACK_FFT_SELFTEST    0x26000000UL
+#define L1C_VSPA_CMD_FFT_PROFILE     0x28000000UL
+#define L1C_VSPA_CMD_FFT_BIN         0x29000000UL
+#define L1C_VSPA_ACK_FFT_PROFILE     0x2A000000UL
+#define L1C_VSPA_ACK_FFT_BIN         0x2B000000UL
+#define L1C_VSPA_CMD_LDPC_FECU_TEST  0x2C000000UL
+#define L1C_VSPA_ACK_LDPC_FECU_TEST  0x2D000000UL
+#define L1C_VSPA_CMD_LDPC_LOOPBACK   0x2E000000UL
+#define L1C_VSPA_ACK_LDPC_LOOPBACK   0x2F000000UL
+#define L1C_VSPA_CMD_MASK            0xFF000000UL
+#define L1C_VSPA_STATUS_PASS         0x00000001UL
+#define L1C_VSPA_FFT_POINTS          512UL
+#define L1C_VSPA_LDPC_LOOPBACK_ACK_RETRIES 500UL
+
 #ifdef TURN_ON_STANDALONE_MODE
 #define EXT_HEADER_OFFSET         0x20
 #define CRC_HEADER_OFFSET         0x40
@@ -596,6 +611,367 @@ void vAVIDemo( uint32_t ulNumIteration )
 avi_out:
         log_info( "Exit %s\n\r", __func__ );
         return;
+}
+
+void vL1cVspaFftDemo( uint32_t ulNumIteration )
+{
+    struct avi_mbox host_mbox;
+    struct avi_mbox rsp_mbox = { 0 };
+    void * avihndl;
+    uint32_t ulCnt;
+    uint32_t ulRetry;
+    bool bGotExpectedAck;
+
+    if( ulNumIteration == 0u )
+    {
+        ulNumIteration = 1u;
+    }
+
+    avihndl = iLa9310AviInit();
+
+    if( NULL == avihndl )
+    {
+        PRINTF( "[L1C VSPA FFT] FAIL: AVI initialization failed\r\n" );
+        return;
+    }
+
+    PRINTF( "[L1C VSPA FFT] sending FFT/IFFT self-test command for %lu iteration(s)\r\n",
+            ( unsigned long ) ulNumIteration );
+
+    for( ulCnt = 0u; ulCnt < ulNumIteration; ulCnt++ )
+    {
+        host_mbox.msb = L1C_VSPA_CMD_FFT_SELFTEST | ( ulCnt & 0x00FFFFFFUL );
+        host_mbox.lsb = ulCnt;
+        bGotExpectedAck = false;
+
+        if( 0 != iLa9310AviHostSendMboxToVspa( avihndl, host_mbox.msb, host_mbox.lsb, 0u ) )
+        {
+            PRINTF( "[L1C VSPA FFT] iter %lu FAIL: send mailbox failed\r\n",
+                    ( unsigned long ) ulCnt );
+            continue;
+        }
+
+        for( ulRetry = 0u; ulRetry < 4u; ulRetry++ )
+        {
+            if( 0 != iLa9310AviHostRecvMboxFromVspa( avihndl, &rsp_mbox, 0u ) )
+            {
+                PRINTF( "[L1C VSPA FFT] iter %lu FAIL: no VSPA response\r\n",
+                        ( unsigned long ) ulCnt );
+                break;
+            }
+
+            if( ( rsp_mbox.msb & L1C_VSPA_CMD_MASK ) == L1C_VSPA_ACK_FFT_SELFTEST )
+            {
+                bGotExpectedAck = true;
+                break;
+            }
+
+            PRINTF( "[L1C VSPA FFT] iter %lu ignoring mailbox msb=0x%08lx lsb=0x%08lx\r\n",
+                    ( unsigned long ) ulCnt,
+                    ( unsigned long ) rsp_mbox.msb,
+                    ( unsigned long ) rsp_mbox.lsb );
+        }
+
+        if( bGotExpectedAck && ( rsp_mbox.msb & L1C_VSPA_STATUS_PASS ) )
+        {
+            PRINTF( "[L1C VSPA FFT] iter %lu PASS status=0x%08lx checksum=0x%08lx\r\n",
+                    ( unsigned long ) ulCnt,
+                    ( unsigned long ) rsp_mbox.msb,
+                    ( unsigned long ) rsp_mbox.lsb );
+        }
+        else if( bGotExpectedAck )
+        {
+            PRINTF( "[L1C VSPA FFT] iter %lu FAIL status=0x%08lx checksum=0x%08lx\r\n",
+                    ( unsigned long ) ulCnt,
+                    ( unsigned long ) rsp_mbox.msb,
+                    ( unsigned long ) rsp_mbox.lsb );
+        }
+    }
+}
+
+void vL1cVspaFftDumpDemo( uint32_t ulNumBins )
+{
+    struct avi_mbox rsp_mbox = { 0 };
+    void * avihndl;
+    uint32_t ulIndex;
+    uint32_t ulRetry;
+    uint32_t ulPeakIndex;
+    bool bGotExpectedAck = false;
+
+    if( ( ulNumBins == 0u ) || ( ulNumBins > L1C_VSPA_FFT_POINTS ) )
+    {
+        ulNumBins = L1C_VSPA_FFT_POINTS;
+    }
+
+    avihndl = iLa9310AviInit();
+
+    if( NULL == avihndl )
+    {
+        PRINTF( "[L1C VSPA FFT PLOT] FAIL: AVI initialization failed\r\n" );
+        return;
+    }
+
+    if( 0 != iLa9310AviHostSendMboxToVspa( avihndl, L1C_VSPA_CMD_FFT_PROFILE, 0u, 0u ) )
+    {
+        PRINTF( "[L1C VSPA FFT PLOT] FAIL: profile command send failed\r\n" );
+        return;
+    }
+
+    for( ulRetry = 0u; ulRetry < 4u; ulRetry++ )
+    {
+        if( 0 != iLa9310AviHostRecvMboxFromVspa( avihndl, &rsp_mbox, 0u ) )
+        {
+            PRINTF( "[L1C VSPA FFT PLOT] FAIL: no profile response\r\n" );
+            return;
+        }
+
+        if( ( rsp_mbox.msb & L1C_VSPA_CMD_MASK ) == L1C_VSPA_ACK_FFT_PROFILE )
+        {
+            bGotExpectedAck = true;
+            break;
+        }
+
+        PRINTF( "[L1C VSPA FFT PLOT] ignoring mailbox msb=0x%08lx lsb=0x%08lx\r\n",
+                ( unsigned long ) rsp_mbox.msb,
+                ( unsigned long ) rsp_mbox.lsb );
+    }
+
+    if( !bGotExpectedAck )
+    {
+        PRINTF( "[L1C VSPA FFT PLOT] FAIL: profile ack not received\r\n" );
+        return;
+    }
+
+    ulPeakIndex = ( rsp_mbox.msb >> 8 ) & 0x0000FFFFUL;
+    PRINTF( "[L1C VSPA FFT PLOT] PROFILE status=0x%08lx peak_index=%lu peak_magnitude=%lu order=bit_reversed\r\n",
+            ( unsigned long ) rsp_mbox.msb,
+            ( unsigned long ) ulPeakIndex,
+            ( unsigned long ) rsp_mbox.lsb );
+    PRINTF( "FFT_MAG_BEGIN,bins=%lu,order=bit_reversed\r\n", ( unsigned long ) ulNumBins );
+    PRINTF( "FFT_MAG,bin,magnitude\r\n" );
+
+    for( ulIndex = 0u; ulIndex < ulNumBins; ulIndex++ )
+    {
+        bGotExpectedAck = false;
+
+        if( 0 != iLa9310AviHostSendMboxToVspa( avihndl, L1C_VSPA_CMD_FFT_BIN, ulIndex, 0u ) )
+        {
+            PRINTF( "[L1C VSPA FFT PLOT] bin %lu FAIL: send failed\r\n",
+                    ( unsigned long ) ulIndex );
+            continue;
+        }
+
+        for( ulRetry = 0u; ulRetry < 4u; ulRetry++ )
+        {
+            if( 0 != iLa9310AviHostRecvMboxFromVspa( avihndl, &rsp_mbox, 0u ) )
+            {
+                PRINTF( "[L1C VSPA FFT PLOT] bin %lu FAIL: no response\r\n",
+                        ( unsigned long ) ulIndex );
+                break;
+            }
+
+            if( ( rsp_mbox.msb & L1C_VSPA_CMD_MASK ) == L1C_VSPA_ACK_FFT_BIN )
+            {
+                bGotExpectedAck = true;
+                break;
+            }
+
+            PRINTF( "[L1C VSPA FFT PLOT] bin %lu ignoring mailbox msb=0x%08lx lsb=0x%08lx\r\n",
+                    ( unsigned long ) ulIndex,
+                    ( unsigned long ) rsp_mbox.msb,
+                    ( unsigned long ) rsp_mbox.lsb );
+        }
+
+        if( bGotExpectedAck )
+        {
+            PRINTF( "FFT_MAG,%lu,%lu\r\n",
+                    ( unsigned long ) ( rsp_mbox.msb & 0x0000FFFFUL ),
+                    ( unsigned long ) rsp_mbox.lsb );
+        }
+    }
+
+    PRINTF( "FFT_MAG_END\r\n" );
+}
+
+void vL1cVspaLdpcFecuDemo( uint32_t ulNumIteration )
+{
+    struct avi_mbox host_mbox;
+    struct avi_mbox rsp_mbox = { 0 };
+    void * avihndl;
+    uint32_t ulCnt;
+    uint32_t ulRetry;
+    uint32_t ulNonZero;
+    bool bGotExpectedAck;
+
+    if( ulNumIteration == 0u )
+    {
+        ulNumIteration = 1u;
+    }
+
+    avihndl = iLa9310AviInit();
+
+    if( NULL == avihndl )
+    {
+        PRINTF( "[L1C VSPA LDPC FECU] FAIL: AVI initialization failed\r\n" );
+        return;
+    }
+
+    PRINTF( "[L1C VSPA LDPC FECU] running LDPC encoder self-test for %lu iteration(s)\r\n",
+            ( unsigned long ) ulNumIteration );
+
+    for( ulCnt = 0u; ulCnt < ulNumIteration; ulCnt++ )
+    {
+        host_mbox.msb = L1C_VSPA_CMD_LDPC_FECU_TEST | ( ulCnt & 0x00FFFFFFUL );
+        host_mbox.lsb = ulCnt;
+        bGotExpectedAck = false;
+
+        if( 0 != iLa9310AviHostSendMboxToVspa( avihndl, host_mbox.msb, host_mbox.lsb, 0u ) )
+        {
+            PRINTF( "[L1C VSPA LDPC FECU] iter %lu FAIL: send mailbox failed\r\n",
+                    ( unsigned long ) ulCnt );
+            continue;
+        }
+
+        for( ulRetry = 0u; ulRetry < 4u; ulRetry++ )
+        {
+            if( 0 != iLa9310AviHostRecvMboxFromVspa( avihndl, &rsp_mbox, 0u ) )
+            {
+                PRINTF( "[L1C VSPA LDPC FECU] iter %lu FAIL: no VSPA response\r\n",
+                        ( unsigned long ) ulCnt );
+                break;
+            }
+
+            if( ( rsp_mbox.msb & L1C_VSPA_CMD_MASK ) == L1C_VSPA_ACK_LDPC_FECU_TEST )
+            {
+                bGotExpectedAck = true;
+                break;
+            }
+
+            PRINTF( "[L1C VSPA LDPC FECU] iter %lu ignoring mailbox msb=0x%08lx lsb=0x%08lx\r\n",
+                    ( unsigned long ) ulCnt,
+                    ( unsigned long ) rsp_mbox.msb,
+                    ( unsigned long ) rsp_mbox.lsb );
+        }
+
+        if( bGotExpectedAck )
+        {
+            ulNonZero = ( rsp_mbox.msb >> 8 ) & 0x0000FFFFUL;
+
+            if( rsp_mbox.msb & L1C_VSPA_STATUS_PASS )
+            {
+                PRINTF( "[L1C VSPA LDPC FECU] iter %lu PASS status=0x%08lx nonzero=%lu checksum=0x%08lx\r\n",
+                        ( unsigned long ) ulCnt,
+                        ( unsigned long ) rsp_mbox.msb,
+                        ( unsigned long ) ulNonZero,
+                        ( unsigned long ) rsp_mbox.lsb );
+            }
+            else
+            {
+                PRINTF( "[L1C VSPA LDPC FECU] iter %lu FAIL status=0x%08lx nonzero=%lu checksum=0x%08lx\r\n",
+                        ( unsigned long ) ulCnt,
+                        ( unsigned long ) rsp_mbox.msb,
+                        ( unsigned long ) ulNonZero,
+                        ( unsigned long ) rsp_mbox.lsb );
+            }
+        }
+    }
+}
+
+void vL1cVspaLdpcLoopbackDemo( uint32_t ulNumIteration )
+{
+    struct avi_mbox host_mbox;
+    struct avi_mbox rsp_mbox = { 0 };
+    void * avihndl;
+    uint32_t ulCnt;
+    uint32_t ulRetry;
+    uint32_t ulBitErrors;
+    uint32_t ulFirstFailCase;
+    uint32_t ulFirstFailErrors;
+    uint32_t ulCaseCount;
+    bool bGotExpectedAck;
+
+    if( ulNumIteration == 0u )
+    {
+        ulNumIteration = 1u;
+    }
+
+    avihndl = iLa9310AviInit();
+
+    if( NULL == avihndl )
+    {
+        PRINTF( "[L1C VSPA LDPC LOOPBACK] FAIL: AVI initialization failed\r\n" );
+        return;
+    }
+
+    PRINTF( "[L1C VSPA LDPC LOOPBACK] running 3-pattern encode->LLR->decode for %lu iteration(s)\r\n",
+            ( unsigned long ) ulNumIteration );
+
+    for( ulCnt = 0u; ulCnt < ulNumIteration; ulCnt++ )
+    {
+        host_mbox.msb = L1C_VSPA_CMD_LDPC_LOOPBACK | ( ulCnt & 0x00FFFFFFUL );
+        host_mbox.lsb = ulCnt;
+        bGotExpectedAck = false;
+
+        if( 0 != iLa9310AviHostSendMboxToVspa( avihndl, host_mbox.msb, host_mbox.lsb, 0u ) )
+        {
+            PRINTF( "[L1C VSPA LDPC LOOPBACK] iter %lu FAIL: send mailbox failed\r\n",
+                    ( unsigned long ) ulCnt );
+            continue;
+        }
+
+        for( ulRetry = 0u; ulRetry < L1C_VSPA_LDPC_LOOPBACK_ACK_RETRIES; ulRetry++ )
+        {
+            if( 0 != iLa9310AviHostRecvMboxFromVspa( avihndl, &rsp_mbox, 0u ) )
+            {
+                if( ulRetry == ( L1C_VSPA_LDPC_LOOPBACK_ACK_RETRIES - 1u ) )
+                {
+                    PRINTF( "[L1C VSPA LDPC LOOPBACK] iter %lu FAIL: no VSPA response\r\n",
+                            ( unsigned long ) ulCnt );
+                }
+                continue;
+            }
+
+            if( ( rsp_mbox.msb & L1C_VSPA_CMD_MASK ) == L1C_VSPA_ACK_LDPC_LOOPBACK )
+            {
+                bGotExpectedAck = true;
+                break;
+            }
+
+            PRINTF( "[L1C VSPA LDPC LOOPBACK] iter %lu ignoring mailbox msb=0x%08lx lsb=0x%08lx\r\n",
+                    ( unsigned long ) ulCnt,
+                    ( unsigned long ) rsp_mbox.msb,
+                    ( unsigned long ) rsp_mbox.lsb );
+        }
+
+        if( bGotExpectedAck )
+        {
+            ulBitErrors = ( rsp_mbox.msb >> 8 ) & 0x0000FFFFUL;
+
+            if( rsp_mbox.msb & L1C_VSPA_STATUS_PASS )
+            {
+                PRINTF( "[L1C VSPA LDPC LOOPBACK] iter %lu PASS status=0x%08lx bit_errors=%lu checksum=0x%08lx\r\n",
+                        ( unsigned long ) ulCnt,
+                        ( unsigned long ) rsp_mbox.msb,
+                        ( unsigned long ) ulBitErrors,
+                        ( unsigned long ) rsp_mbox.lsb );
+            }
+            else
+            {
+                ulFirstFailCase = rsp_mbox.lsb & 0x000000FFUL;
+                ulFirstFailErrors = ( rsp_mbox.lsb >> 8 ) & 0x000003FFUL;
+                ulCaseCount = ( rsp_mbox.lsb >> 18 ) & 0x000000FFUL;
+
+                PRINTF( "[L1C VSPA LDPC LOOPBACK] iter %lu FAIL status=0x%08lx bit_errors=%lu first_fail_case=%lu first_fail_errors=%lu cases=%lu detail=0x%08lx\r\n",
+                        ( unsigned long ) ulCnt,
+                        ( unsigned long ) rsp_mbox.msb,
+                        ( unsigned long ) ulBitErrors,
+                        ( unsigned long ) ulFirstFailCase,
+                        ( unsigned long ) ulFirstFailErrors,
+                        ( unsigned long ) ulCaseCount,
+                        ( unsigned long ) rsp_mbox.lsb );
+            }
+        }
+    }
 }
 
 void vWdogDemo( struct la9310_info * pLa9310Info )

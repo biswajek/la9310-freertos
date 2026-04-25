@@ -45,6 +45,10 @@ extern void vLa9310I2CTest( uint8_t uI2C_Controller,
                             uint32_t uByteToWrite );
 
 extern void vAVIDemo( uint32_t ulNumIteration );
+extern void vL1cVspaFftDemo( uint32_t ulNumIteration );
+extern void vL1cVspaFftDumpDemo( uint32_t ulNumBins );
+extern void vL1cVspaLdpcFecuDemo( uint32_t ulNumIteration );
+extern void vL1cVspaLdpcLoopbackDemo( uint32_t ulNumIteration );
 extern int iVerifyVSPATable();
 /*****************************************************************************
  * @vGenerateExceptions

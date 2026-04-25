@@ -80,6 +80,10 @@ enum eLa9310TestCmdID
     TEST_TASK_CREATE = 22,
     TEST_QUEUE_IPC = 23,
     TEST_MODEM_MGR_TIMER = 24,
+    TEST_L1C_VSPA_FFT = 25,
+    TEST_L1C_VSPA_FFT_DUMP = 26,
+    TEST_L1C_VSPA_LDPC_FECU = 27,
+    TEST_L1C_VSPA_LDPC_LOOPBACK = 28,
 #endif
     MAX_TEST_CMDS
 };
@@ -131,7 +135,11 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
 #ifdef TEST_L1C_TASKS
     " Create L1 tasks: init proc queues then create modemMgr/vspaIn/vspaOut/RX/TX tasks (test 22)",
     " Inter-task queue IPC via procx_comm: 0=MDMMGR->TX 1=TX->RX 2=VSPA_IN->RX other=all (test 23 <path>)",
-    " Activate modem-mgr via phytimer: init phy timer PPS-OUT (10ms tick) then sample slot/frame count (test 24 <sample_iter>)"
+    " Activate modem-mgr via phytimer: init phy timer PPS-OUT (10ms tick) then sample slot/frame count (test 24 <sample_iter>)",
+    " Trigger VSPA FFT/IFFT self-test via AVI mailbox (test 25 <iterations>)",
+    " Dump VSPA FFT magnitude bins for plotting (test 26 <num_bins>)",
+    " Run VSPA LDPC FECU encoder self-test (test 27 <iterations>)",
+    " Run VSPA LDPC 3-pattern encoder/decoder loopback self-test (test 28 <iterations>)"
 #endif
 };
 
@@ -536,6 +544,83 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 						( unsigned long ) i, ( unsigned long ) ulFrame, ( unsigned long ) ulSlot );
 				vTaskDelay( pdMS_TO_TICKS( 50 ) );
 			}
+			break;
+
+		case TEST_L1C_VSPA_FFT:
+			/* Trigger the VSPA-side FFT/IFFT service image through AVI mailbox0.
+			 * Param2 = number of command/ack iterations to run. */
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			if( pcParam2 != NULL )
+			{
+				ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			}
+			else
+			{
+				ulTempVal2 = 1;
+			}
+			if( ulTempVal2 == 0 )
+			{
+				ulTempVal2 = 1;
+			}
+
+			vL1cVspaFftDemo( ulTempVal2 );
+			break;
+
+		case TEST_L1C_VSPA_FFT_DUMP:
+			/* Run the VSPA FFT profile and print magnitude-squared bins as CSV.
+			 * Param2 = number of bins to print, default/all = 512. */
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			if( pcParam2 != NULL )
+			{
+				ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			}
+			else
+			{
+				ulTempVal2 = 512;
+			}
+
+			vL1cVspaFftDumpDemo( ulTempVal2 );
+			break;
+
+		case TEST_L1C_VSPA_LDPC_FECU:
+			/* Trigger the VSPA-side LDPC FECU encoder self-test.
+			 * Param2 = number of command/ack iterations to run. */
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			if( pcParam2 != NULL )
+			{
+				ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			}
+			else
+			{
+				ulTempVal2 = 1;
+			}
+			if( ulTempVal2 == 0 )
+			{
+				ulTempVal2 = 1;
+			}
+
+			vL1cVspaLdpcFecuDemo( ulTempVal2 );
+			break;
+
+		case TEST_L1C_VSPA_LDPC_LOOPBACK:
+			/* Run VSPA-side LDPC encode -> soft LLR -> decode loopback
+			 * across sparse-first, constant, and additional sparse-position patterns.
+			 * Param2 = number of command/ack iterations to run. */
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			if( pcParam2 != NULL )
+			{
+				ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			}
+			else
+			{
+				ulTempVal2 = 1;
+			}
+			if( ulTempVal2 == 0 )
+			{
+				ulTempVal2 = 1;
+			}
+
+			vL1cVspaLdpcLoopbackDemo( ulTempVal2 );
 			break;
 #endif /* TEST_L1C_TASKS */
 
