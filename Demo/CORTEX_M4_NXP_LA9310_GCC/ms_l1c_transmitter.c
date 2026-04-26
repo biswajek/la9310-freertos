@@ -209,14 +209,23 @@ void *transmitter_task( void *arg )
             transmitter_send_control_over_air( &pending_ctrl_msg );
             pending_ctrl_msg_valid = false;
 
-            /* Notify RX thread that the control message has gone over the air. */
-            S_UNIFIED_MSG_BUFF ind = {
+            /* Signal VSPA_OUT to send the control message to VSPA via hardware mailbox. */
+            S_UNIFIED_MSG_BUFF vspa_ind = {
+                .opcode    = MS_MSG_OPCODE_VSPA_SEND_CTRL,
+                .payload   = pending_ctrl_msg.payload,
+                .camera_id = pending_ctrl_msg.camera_id,
+                .time      = current_frame,
+            };
+            (void) procx_comm( VSPA_OUT_XC_ID, TX_XC_ID, &vspa_ind );
+
+            /* Notify RX that a control message is in flight so it can track the ACK. */
+            S_UNIFIED_MSG_BUFF rx_ind = {
                 .opcode    = MS_MSG_OPCODE_CTRL_MSG_SENT,
                 .payload   = NULL,
                 .camera_id = pending_ctrl_msg.camera_id,
                 .time      = current_frame,
             };
-            (void) procx_comm( TX_XC_ID, RX_XC_ID, &ind );
+            (void) procx_comm( RX_XC_ID, TX_XC_ID, &rx_ind );
         }
 
     }

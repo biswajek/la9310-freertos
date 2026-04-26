@@ -100,7 +100,21 @@ static void modem_mgr_send_to_host( const S_UNIFIED_MSG_BUFF *msg )
     }
     else
     {
-        log_info( "[MODEMMGR] CTRL_ACK forwarded to host\r\n" );
+        switch( msg->opcode )
+        {
+            case MS_MSG_OPCODE_CTRL_ACK_FAIL:
+                log_err( "[MODEMMGR] CTRL_ACK_FAIL sent to host (camera_id=%u)\r\n",
+                         (unsigned) msg->camera_id );
+                break;
+            case MS_MSG_OPCODE_RX_READY:
+                log_info( "[MODEMMGR] RX_READY sent to host (camera_id=%u frame=%lu)\r\n",
+                          (unsigned) msg->camera_id, ( unsigned long ) msg->time );
+                break;
+            default:
+                log_info( "[MODEMMGR] CTRL_ACK sent to host (camera_id=%u)\r\n",
+                          (unsigned) msg->camera_id );
+                break;
+        }
     }
 }
 
@@ -183,9 +197,24 @@ void modem_mgr_cb_xc( procx_comm_id_e src_proc, void *data )
         case VSPA_OUT_XC_ID:
             break;
         case RX_XC_ID:
-            if( ( msg != NULL ) && ( msg->opcode == MS_MSG_OPCODE_CTRL_ACK ) )
+            if( msg != NULL )
             {
-                modem_mgr_send_to_host( msg );
+                if( msg->opcode == MS_MSG_OPCODE_CTRL_ACK ||
+                    msg->opcode == MS_MSG_OPCODE_CTRL_ACK_FAIL )
+                {
+                    modem_mgr_send_to_host( msg );
+                }
+                else if( msg->opcode == MS_MSG_OPCODE_RX_READY )
+                {
+                    /* Stamp the next frame number so the host knows when
+                     * to expect the first video data, then forward. */
+                    S_UNIFIED_MSG_BUFF rx_ready = *msg;
+                    rx_ready.time = modem_frame_count + 1U;
+                    log_info( "[MODEMMGR] RX_READY: notifying host, video starts frame %lu (camera_id=%u)\r\n",
+                              ( unsigned long ) rx_ready.time,
+                              (unsigned) rx_ready.camera_id );
+                    modem_mgr_send_to_host( &rx_ready );
+                }
             }
             break;
         case TX_XC_ID:
@@ -225,6 +254,28 @@ void modem_mgr_ipc_control_msg_cb( void *data )
     }
 
     (void) procx_comm( TX_XC_ID, MDMMGR_XC_ID, msg );
+}
+
+/**
+ * @brief Handles Host IPC start-video-RX messages and forwards them to the receiver.
+ *
+ * @param[in] data  Pointer to @c S_UNIFIED_MSG_BUFF from Host IPC path.
+ */
+void modem_mgr_ipc_start_video_rx_cb( void *data )
+{
+    S_UNIFIED_MSG_BUFF *msg = (S_UNIFIED_MSG_BUFF *) data;
+
+    if( ( msg == NULL ) ||
+        ( msg->opcode != MS_MSG_OPCODE_START_VIDEO_RX ) ||
+        ( msg->camera_id > MAX_CAMERA_ID ) )
+    {
+        return;
+    }
+
+    log_info( "[MODEMMGR] START_VIDEO_RX from host (camera_id=%u)\r\n",
+              (unsigned) msg->camera_id );
+
+    (void) procx_comm( RX_XC_ID, MDMMGR_XC_ID, msg );
 }
 
 /**
@@ -316,7 +367,8 @@ void l1_controller_modem_mgr_init( uint8_t core_num )
         modem_mgr_host_ipc_cbs[i] = NULL;
     }
 
-    modem_mgr_host_ipc_cbs[MS_MSG_OPCODE_CONTROL_MSG] = modem_mgr_ipc_control_msg_cb;
+    modem_mgr_host_ipc_cbs[MS_MSG_OPCODE_CONTROL_MSG]    = modem_mgr_ipc_control_msg_cb;
+    modem_mgr_host_ipc_cbs[MS_MSG_OPCODE_START_VIDEO_RX] = modem_mgr_ipc_start_video_rx_cb;
 
     UNUSED( core_num );
 

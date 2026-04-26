@@ -95,6 +95,36 @@ typedef enum MS_MSG_OPCODE
 	/*---   VSPA_IN ==> RX : ACK received over the air --- */
 	MS_MSG_OPCODE_CTRL_ACK,
 
+	/*---   HOST ==> MODEMMGR ==> RX : begin video reception --- */
+	MS_MSG_OPCODE_START_VIDEO_RX,
+
+	/*---   RX ==> VSPA_IN : trigger LDPC FECU configuration on VSPA --- */
+	MS_MSG_OPCODE_LDPC_CFG,
+
+	/*---   VSPA_OUT ==> RX : LDPC cfg-done ACK received from VSPA --- */
+	MS_MSG_OPCODE_LDPC_CFG_ACK,
+
+	/*---   RX ==> VSPA_IN : trigger LDPC processing on VSPA --- */
+	MS_MSG_OPCODE_LDPC_TRIG,
+
+	/*---   VSPA_IN ==> RX : LDPC trigger sent to VSPA --- */
+	MS_MSG_OPCODE_LDPC_TRIGGERED,
+
+	/*---   RX ==> MODEMMGR ==> HOST : video reception starts next frame --- */
+	MS_MSG_OPCODE_RX_READY,
+
+	/*---   TX ==> VSPA_OUT : deliver control message to VSPA via mailbox --- */
+	MS_MSG_OPCODE_VSPA_SEND_CTRL,
+
+	/*---   VSPA_OUT ==> VSPA_IN : wait for control ACK from VSPA via mailbox --- */
+	MS_MSG_OPCODE_VSPA_WAIT_ACK,
+
+	/*---   VSPA_IN ==> VSPA_OUT : wait for LDPC cfg-done ACK from VSPA via mailbox --- */
+	MS_MSG_OPCODE_VSPA_WAIT_LDPC_CFG_DONE_ACK,
+
+	/*---   VSPA_IN ==> RX : ACK wait timed out, no response from VSPA --- */
+	MS_MSG_OPCODE_CTRL_ACK_FAIL,
+
 	MS_MSG_OPCODE_MAX
 }MS_MSG_OPCODE;
 

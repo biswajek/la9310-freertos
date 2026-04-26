@@ -11,12 +11,11 @@
  *
  * CTRL_ACK flow
  * -------------
- * When the TX thread sends a control message over the air it notifies RX via
- * MS_MSG_OPCODE_CTRL_MSG_SENT.  RX then:
- *   1. Configures the VSPA demodulator (stub).
- *   2. Waits up to CTRL_ACK_TIMEOUT_FRAMES frames for an MS_MSG_OPCODE_CTRL_ACK.
- * If the ACK does not arrive within the timeout, RX clears the demodulator
- * configuration (stub) and stops waiting.
+ * When TX sends a control message it notifies RX (MS_MSG_OPCODE_CTRL_MSG_SENT)
+ * and signals VSPA_OUT to deliver the message to VSPA via hardware mailbox.
+ * VSPA_OUT then signals VSPA_IN, which polls the mailbox for an ACK.
+ * On success VSPA_IN sends MS_MSG_OPCODE_CTRL_ACK; on timeout it sends
+ * MS_MSG_OPCODE_CTRL_ACK_FAIL.  RX forwards either result to modem manager.
  */
 
 /*------------------------------------------
@@ -51,13 +50,10 @@
 proc_queue_t receiver_q;
 
 /** @brief True while waiting for a CTRL_ACK after a control message was sent. */
-static bool     rx_ctrl_ack_pending;
-
-/** @brief Frame number at or after which the ACK wait expires. */
-static uint32_t rx_ctrl_ack_deadline;
+static bool    rx_ctrl_ack_pending;
 
 /** @brief camera_id carried by the pending control message. */
-static uint8_t  rx_ctrl_ack_camera_id;
+static uint8_t rx_ctrl_ack_camera_id;
 
 /*------------------------------------------
                 STUBS
@@ -104,6 +100,11 @@ void receiver_cb_xc( procx_comm_id_e src_proc, void *data )
     switch( src_proc )
     {
         case MDMMGR_XC_ID:
+            err = send_cmd_to_proc( &receiver_q, data, sizeof( S_UNIFIED_MSG_BUFF ) );
+            if( err != Success )
+            {
+                log_err( "[RECEIVER] Msg from MODEM MGR not pushed in queue\r\n" );
+            }
             break;
         case TIMER_HANDLER_XC_ID:
             break;
@@ -123,6 +124,11 @@ void receiver_cb_xc( procx_comm_id_e src_proc, void *data )
             }
             break;
         case VSPA_OUT_XC_ID:
+            err = send_cmd_to_proc( &receiver_q, data, sizeof( S_UNIFIED_MSG_BUFF ) );
+            if( err != Success )
+            {
+                log_err( "[RECEIVER] Msg from VSPA_OUT not pushed in queue\r\n" );
+            }
             break;
         case RX_XC_ID:
             break;
@@ -153,7 +159,6 @@ void l1_controller_receiver_init( uint8_t core_num )
                          sizeof( S_UNIFIED_MSG_BUFF ), MS_RECEIVER_QUEUE_NAME );
 
     rx_ctrl_ack_pending   = false;
-    rx_ctrl_ack_deadline  = 0U;
     rx_ctrl_ack_camera_id = 0U;
 
     procx_comm_reg( receiver_cb_xc, RX_XC_ID );
@@ -169,7 +174,6 @@ void l1_controller_receiver_init( uint8_t core_num )
 void *receiver_task( void *arg )
 {
     S_UNIFIED_MSG_BUFF rx_msg;
-    uint32_t current_frame = 0U;
     uint32_t queue_wait_ms;
     size_t   rx_msg_len;
     MsgQ_Priorities_t rx_msg_prio;
@@ -187,17 +191,60 @@ void *receiver_task( void *arg )
         {
             switch( rx_msg.opcode )
             {
+                case MS_MSG_OPCODE_START_VIDEO_RX:
+                    log_info( "[RECEIVER] START_VIDEO_RX: signalling VSPA_IN to configure LDPC (camera_id=%u)\r\n",
+                              (unsigned) rx_msg.camera_id );
+                    {
+                        S_UNIFIED_MSG_BUFF ldpc_ind = {
+                            .opcode    = MS_MSG_OPCODE_LDPC_CFG,
+                            .payload   = NULL,
+                            .camera_id = rx_msg.camera_id,
+                            .time      = rx_msg.time,
+                        };
+                        (void) procx_comm( VSPA_IN_XC_ID, RX_XC_ID, &ldpc_ind );
+                    }
+                    break;
+
+                case MS_MSG_OPCODE_LDPC_CFG_ACK:
+                    /* LDPC FECU is configured on VSPA — tell VSPA_IN to
+                     * send the LDPC trigger so VSPA starts processing. */
+                    log_info( "[RECEIVER] LDPC cfg ACK: triggering LDPC on VSPA (camera_id=%u)\r\n",
+                              (unsigned) rx_msg.camera_id );
+                    {
+                        S_UNIFIED_MSG_BUFF trig = {
+                            .opcode    = MS_MSG_OPCODE_LDPC_TRIG,
+                            .payload   = NULL,
+                            .camera_id = rx_msg.camera_id,
+                            .time      = rx_msg.time,
+                        };
+                        (void) procx_comm( VSPA_IN_XC_ID, RX_XC_ID, &trig );
+                    }
+                    break;
+
+                case MS_MSG_OPCODE_LDPC_TRIGGERED:
+                    /* VSPA_IN confirmed the LDPC trigger was sent —
+                     * tell modem manager so it can notify the host. */
+                    log_info( "[RECEIVER] LDPC triggered on VSPA (camera_id=%u)\r\n",
+                              (unsigned) rx_msg.camera_id );
+                    {
+                        S_UNIFIED_MSG_BUFF rx_ready = {
+                            .opcode    = MS_MSG_OPCODE_RX_READY,
+                            .payload   = NULL,
+                            .camera_id = rx_msg.camera_id,
+                            .time      = rx_msg.time,
+                        };
+                        (void) procx_comm( MDMMGR_XC_ID, RX_XC_ID, &rx_ready );
+                    }
+                    break;
+
                 case MS_MSG_OPCODE_CTRL_MSG_SENT:
                     /* TX sent the control message; configure demodulator and
                      * start the ACK wait window. */
                     rx_ctrl_ack_camera_id = rx_msg.camera_id;
-                    rx_ctrl_ack_deadline  = rx_msg.time + CTRL_ACK_TIMEOUT_FRAMES;
                     rx_ctrl_ack_pending   = true;
                     rx_vspa_demod_configure( rx_ctrl_ack_camera_id );
-                    log_info( "[RECEIVER] Ctrl msg sent indication: "
-                              "waiting ACK for %u frames (deadline frame %u)\r\n",
-                              (unsigned) CTRL_ACK_TIMEOUT_FRAMES,
-                              (unsigned) rx_ctrl_ack_deadline );
+                    log_info( "[RECEIVER] Ctrl msg sent, waiting for VSPA ACK (camera_id=%u)\r\n",
+                              (unsigned) rx_ctrl_ack_camera_id );
                     break;
 
                 case MS_MSG_OPCODE_CTRL_ACK:
@@ -205,8 +252,18 @@ void *receiver_task( void *arg )
                     {
                         log_info( "[RECEIVER] CTRL_ACK received\r\n" );
                         rx_ctrl_ack_pending = false;
-                        /* Notify modem manager so it can relay the ACK to the host. */
-                        (void) procx_comm( RX_XC_ID, MDMMGR_XC_ID, &rx_msg );
+                        (void) procx_comm( MDMMGR_XC_ID, RX_XC_ID, &rx_msg );
+                    }
+                    break;
+
+                case MS_MSG_OPCODE_CTRL_ACK_FAIL:
+                    if( rx_ctrl_ack_pending )
+                    {
+                        log_err( "[RECEIVER] CTRL_ACK_FAIL: no ACK from VSPA (camera_id=%u)\r\n",
+                                 (unsigned) rx_msg.camera_id );
+                        rx_ctrl_ack_pending = false;
+                        rx_vspa_demod_clear_config( rx_msg.camera_id );
+                        (void) procx_comm( MDMMGR_XC_ID, RX_XC_ID, &rx_msg );
                     }
                     break;
 
@@ -217,18 +274,6 @@ void *receiver_task( void *arg )
             queue_wait_ms = 0U;
         }
 
-        /* Check ACK timeout. */
-        if( rx_ctrl_ack_pending )
-        {
-            modem_mgr_get_slot_frame_count( NULL, &current_frame );
-            if( current_frame >= rx_ctrl_ack_deadline )
-            {
-                log_err( "[RECEIVER] CTRL_ACK timeout (camera_id=%u)\r\n",
-                         (unsigned) rx_ctrl_ack_camera_id );
-                rx_ctrl_ack_pending = false;
-                rx_vspa_demod_clear_config( rx_ctrl_ack_camera_id );
-            }
-        }
     }
 
     return NULL;
