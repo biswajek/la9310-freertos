@@ -35,6 +35,10 @@ static bool modem_mgr_ipc_queue_configured;
 static bool modem_mgr_m2h_queue_configured;
 static modem_mgr_ipc_msg_cb_t modem_mgr_host_ipc_cbs[MS_MSG_OPCODE_MAX];
 
+static bool    pending_bch_ctrl_valid;
+static uint8_t pending_bch_ctrl_camera_id;
+static void   *pending_bch_ctrl_payload;
+
 /*------------------------------------------
                 FUNCTIONS
 --------------------------------------------*/
@@ -230,30 +234,31 @@ void modem_mgr_cb_xc( procx_comm_id_e src_proc, void *data )
         default:
             break;
     }
-
-    if( ( msg != NULL ) && ( msg->opcode == MS_MSG_OPCODE_CONTROL_MSG ) )
-    {
-        return;
-    }
 }
 
 /**
- * @brief Handles Host IPC control messages and forwards them to transmitter.
+ * @brief Handles Host IPC BCH-send messages and stores the embedded control parameters.
+ *
+ * The host sends BCH_SEND with camera_id and payload carrying the control parameters.
+ * These are held until the next slot-9 tick, at which point they are merged into the
+ * BCH_SEND forwarded to the transmitter.
  *
  * @param[in] data  Pointer to @c S_UNIFIED_MSG_BUFF from Host IPC path.
  */
-void modem_mgr_ipc_control_msg_cb( void *data )
+void modem_mgr_ipc_bch_send_cb( void *data )
 {
     S_UNIFIED_MSG_BUFF *msg = (S_UNIFIED_MSG_BUFF *) data;
 
     if( ( msg == NULL ) ||
-        ( msg->opcode != MS_MSG_OPCODE_CONTROL_MSG ) ||
+        ( msg->opcode != MS_MSG_OPCODE_BCH_SEND ) ||
         ( msg->camera_id > MAX_CAMERA_ID ) )
     {
         return;
     }
 
-    (void) procx_comm( TX_XC_ID, MDMMGR_XC_ID, msg );
+    pending_bch_ctrl_camera_id = msg->camera_id;
+    pending_bch_ctrl_payload   = msg->payload;
+    pending_bch_ctrl_valid     = true;
 }
 
 /**
@@ -316,8 +321,6 @@ void *modem_mgr_task( void *arg )
 
     log_info( "[MODEM MGR] task started\r\n" );
 
-    tx_msg.payload = NULL;
-
     for( ; ; )
     {
         if( l1_controller_wait_on_tick( L1_MODEM_MGR_TASK, MODEM_MGR_TICK_TIMEOUT_MS ) == Success )
@@ -325,10 +328,15 @@ void *modem_mgr_task( void *arg )
             /* Keep host IPC ingestion tick-synchronized with modem slot/frame ownership. */
             modem_mgr_process_host_ipc_messages();
 
-            /* Notify TX one slot before frame rollover so BCH goes in next frame slot 0. */
+            /* Notify TX one slot before frame rollover so BCH goes in next frame slot 0.
+             * Carry any pending control parameters (camera_id/payload) from the host. */
             if( modem_slot_count == ( MAX_NUM_OF_SLOTS_IN_FRAME - 1U ) )
             {
-                tx_msg.opcode = MS_MSG_OPCODE_BCH_SEND;
+                tx_msg.opcode     = MS_MSG_OPCODE_BCH_SEND;
+                tx_msg.time       = modem_frame_count;
+                tx_msg.camera_id  = pending_bch_ctrl_valid ? pending_bch_ctrl_camera_id : 0U;
+                tx_msg.payload    = pending_bch_ctrl_valid ? pending_bch_ctrl_payload    : NULL;
+                pending_bch_ctrl_valid = false;
                 (void) procx_comm( TX_XC_ID, MDMMGR_XC_ID, &tx_msg );
             }
 
@@ -362,12 +370,16 @@ void l1_controller_modem_mgr_init( uint8_t core_num )
     modem_mgr_ipc_queue_configured = false;
     modem_mgr_m2h_queue_configured = false;
 
+    pending_bch_ctrl_valid     = false;
+    pending_bch_ctrl_camera_id = 0U;
+    pending_bch_ctrl_payload   = NULL;
+
     for( i = 0U; i < MS_MSG_OPCODE_MAX; i++ )
     {
         modem_mgr_host_ipc_cbs[i] = NULL;
     }
 
-    modem_mgr_host_ipc_cbs[MS_MSG_OPCODE_CONTROL_MSG]    = modem_mgr_ipc_control_msg_cb;
+    modem_mgr_host_ipc_cbs[MS_MSG_OPCODE_BCH_SEND]       = modem_mgr_ipc_bch_send_cb;
     modem_mgr_host_ipc_cbs[MS_MSG_OPCODE_START_VIDEO_RX] = modem_mgr_ipc_start_video_rx_cb;
 
     UNUSED( core_num );

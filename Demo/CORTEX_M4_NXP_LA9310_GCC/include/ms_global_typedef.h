@@ -83,13 +83,10 @@ typedef enum MS_MOD_SCHEME
 /**//** @brief MSG Opcode ID*/
 typedef enum MS_MSG_OPCODE
 {
-	/*---   OAM ==> CONTROLLER --- */
-	MS_MSG_OPCODE_CONTROL_MSG = 0,
+	/*---   HOST ==> MODEMMGR ==> TX : send BCH; camera_id/payload carry control parameters --- */
+	MS_MSG_OPCODE_BCH_SEND = 0,
 
-	/*---   CONTROLLER ==> PHY --- */
-	MS_MSG_OPCODE_BCH_SEND,
-
-	/*---   TX ==> RX : control message was sent over the air --- */
+	/*---   TX ==> RX : BCH with control parameters was sent over the air --- */
 	MS_MSG_OPCODE_CTRL_MSG_SENT,
 
 	/*---   VSPA_IN ==> RX : ACK received over the air --- */

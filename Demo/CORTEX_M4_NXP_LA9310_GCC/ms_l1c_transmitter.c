@@ -42,47 +42,16 @@
 
 /** @brief PAL proc queue that buffers transmitter messages for the L1 controller. */
 proc_queue_t transmitter_q;
-static bool pending_ctrl_msg_valid;
-static uint32_t pending_ctrl_msg_frame;
-static S_UNIFIED_MSG_BUFF pending_ctrl_msg;
 
 /*------------------------------------------
                 FUNCTIONS
 --------------------------------------------*/
 
 /**
- * @brief Schedules a control message for transmission in slot 1 of next frame.
- *
- * @param[in] msg  Pointer to validated control message.
- */
-static void transmitter_schedule_control_msg( const S_UNIFIED_MSG_BUFF *msg )
-{
-    uint32_t current_frame = 0U;
-
-    if( ( msg == NULL ) || ( msg->camera_id > MAX_CAMERA_ID ) )
-    {
-        return;
-    }
-
-    modem_mgr_get_slot_frame_count( NULL, &current_frame );
-
-    pending_ctrl_msg = *msg;
-    pending_ctrl_msg_valid = true;
-    pending_ctrl_msg_frame = current_frame + 1U;
-}
-
-/**
- * @brief Stub for control-message over-air transmit path.
- *
- * @param[in] msg  Pointer to control message to transmit.
- */
-static void transmitter_send_control_over_air( const S_UNIFIED_MSG_BUFF *msg )
-{
-    UNUSED( msg );
-}
-
-/**
  * @brief Stub for BCH over-air transmit path.
+ *
+ * BCH now carries the control parameters (camera_id, payload) that were
+ * previously sent in a separate control message.
  *
  * @param[in] msg  Pointer to BCH message to transmit.
  */
@@ -151,21 +120,12 @@ void l1_controller_transmitter_init( uint8_t core_num )
     init_proc_cmd_queue( &transmitter_q, (core_id_t) core_num,
                          sizeof( S_UNIFIED_MSG_BUFF ), MS_TRANSMITTER_QUEUE_NAME );
 
-    pending_ctrl_msg_valid = false;
-    pending_ctrl_msg_frame = 0U;
-    pending_ctrl_msg.opcode = MS_MSG_OPCODE_CONTROL_MSG;
-    pending_ctrl_msg.payload = NULL;
-    pending_ctrl_msg.camera_id = 0U;
-    pending_ctrl_msg.time = 0U;
-
     procx_comm_reg( transmitter_cb_xc, TX_XC_ID );
 }
 
 void *transmitter_task( void *arg )
 {
     S_UNIFIED_MSG_BUFF rx_msg;
-    uint32_t current_slot = 0U;
-    uint32_t current_frame = 0U;
     uint32_t queue_wait_ms;
     size_t rx_msg_len;
     MsgQ_Priorities_t rx_msg_prio;
@@ -183,12 +143,30 @@ void *transmitter_task( void *arg )
         {
             switch( rx_msg.opcode )
             {
-                case MS_MSG_OPCODE_CONTROL_MSG:
-                    transmitter_schedule_control_msg( &rx_msg );
-                    break;
-
                 case MS_MSG_OPCODE_BCH_SEND:
+                    /* BCH now carries control parameters in camera_id/payload.
+                     * Send BCH over the air, then — if control params are present —
+                     * signal VSPA_OUT and notify RX to start the ACK wait window. */
                     transmitter_send_bch_over_air( &rx_msg );
+
+                    if( rx_msg.payload != NULL )
+                    {
+                        S_UNIFIED_MSG_BUFF vspa_ind = {
+                            .opcode    = MS_MSG_OPCODE_VSPA_SEND_CTRL,
+                            .payload   = rx_msg.payload,
+                            .camera_id = rx_msg.camera_id,
+                            .time      = rx_msg.time,
+                        };
+                        (void) procx_comm( VSPA_OUT_XC_ID, TX_XC_ID, &vspa_ind );
+
+                        S_UNIFIED_MSG_BUFF rx_ind = {
+                            .opcode    = MS_MSG_OPCODE_CTRL_MSG_SENT,
+                            .payload   = NULL,
+                            .camera_id = rx_msg.camera_id,
+                            .time      = rx_msg.time,
+                        };
+                        (void) procx_comm( RX_XC_ID, TX_XC_ID, &rx_ind );
+                    }
                     break;
 
                 default:
@@ -197,37 +175,6 @@ void *transmitter_task( void *arg )
 
             queue_wait_ms = 0U;
         }
-
-        /* Read globally shared slot/frame maintained by modem manager. */
-        modem_mgr_get_slot_frame_count( &current_slot, &current_frame );
-
-        /* Control message must go in slot 1 of its scheduled frame. */
-        if( pending_ctrl_msg_valid &&
-            ( current_slot == 1U ) &&
-            ( current_frame == pending_ctrl_msg_frame ) )
-        {
-            transmitter_send_control_over_air( &pending_ctrl_msg );
-            pending_ctrl_msg_valid = false;
-
-            /* Signal VSPA_OUT to send the control message to VSPA via hardware mailbox. */
-            S_UNIFIED_MSG_BUFF vspa_ind = {
-                .opcode    = MS_MSG_OPCODE_VSPA_SEND_CTRL,
-                .payload   = pending_ctrl_msg.payload,
-                .camera_id = pending_ctrl_msg.camera_id,
-                .time      = current_frame,
-            };
-            (void) procx_comm( VSPA_OUT_XC_ID, TX_XC_ID, &vspa_ind );
-
-            /* Notify RX that a control message is in flight so it can track the ACK. */
-            S_UNIFIED_MSG_BUFF rx_ind = {
-                .opcode    = MS_MSG_OPCODE_CTRL_MSG_SENT,
-                .payload   = NULL,
-                .camera_id = pending_ctrl_msg.camera_id,
-                .time      = current_frame,
-            };
-            (void) procx_comm( RX_XC_ID, TX_XC_ID, &rx_ind );
-        }
-
     }
 
     return NULL;
