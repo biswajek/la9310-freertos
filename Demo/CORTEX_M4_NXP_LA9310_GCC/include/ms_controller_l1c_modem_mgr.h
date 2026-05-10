@@ -6,7 +6,7 @@
 #define __MS_L1C_MODEM_MGR_H
 
 #include <stdint.h>
-#include "ms_procx_comm.h"
+#include "ms_controller_procx_comm.h"
 
 void l1_controller_modem_mgr_init( uint8_t core_num );
 void modem_mgr_cb_xc( procx_comm_id_e src_proc, void *data );

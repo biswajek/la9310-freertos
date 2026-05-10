@@ -16,8 +16,8 @@
 /*------------------------------------------
                 INCLUDES
 --------------------------------------------*/
-#include "ms_l1_controller_fwk.h"
-#include "ms_procx_comm.h"
+#include "ms_controller_l1_controller_fwk.h"
+#include "ms_controller_procx_comm.h"
 
 /*------------------------------------------
                 DEFINES

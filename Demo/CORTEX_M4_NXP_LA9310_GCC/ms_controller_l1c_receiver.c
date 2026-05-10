@@ -25,14 +25,14 @@
 #include <stddef.h>
 #include "pal_thread.h"
 #include "pal_types.h"
-#include "ms_global_typedef.h"
-#include "ms_globals.h"
-#include "ms_logger.h"
-#include "ms_l1c_controller.h"
-#include "ms_l1_controller_fwk.h"
-#include "ms_procx_comm.h"
-#include "ms_l1c_modem_mgr.h"
-#include "ms_l1c_receiver.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_globals.h"
+#include "ms_controller_logger.h"
+#include "ms_controller_l1c_controller.h"
+#include "ms_controller_l1_controller_fwk.h"
+#include "ms_controller_procx_comm.h"
+#include "ms_controller_l1c_modem_mgr.h"
+#include "ms_controller_l1c_receiver.h"
 
 /*------------------------------------------
                 DEFINES

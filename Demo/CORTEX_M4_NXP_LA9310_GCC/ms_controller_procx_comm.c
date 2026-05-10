@@ -18,8 +18,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include "ms_logger.h"
-#include "ms_procx_comm.h"
+#include "ms_controller_logger.h"
+#include "ms_controller_procx_comm.h"
 
 /*****************************************************************
                             VARIABLES

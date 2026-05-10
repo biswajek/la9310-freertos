@@ -12,27 +12,27 @@
 
 
 --------------------------------------------*/
-#include "ms_global_typedef.h"
-#include "ms_l1c_controller.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_l1c_controller.h"
 
 
 /*------------------------------------------
                 PROTOTYPES
 --------------------------------------------*/
-#include "ms_global_typedef.h"
-#include "ms_l1c_controller.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_l1c_controller.h"
 
 /*------------------------------------------
                 VARIABLES
 --------------------------------------------*/
-#include "ms_global_typedef.h"
-#include "ms_l1c_controller.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_l1c_controller.h"
 
 /*------------------------------------------
                 FUNCTIONS
 --------------------------------------------*/
-#include "ms_global_typedef.h"
-#include "ms_l1c_controller.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_l1c_controller.h"
 
 /**
  * @brief Initializes the L1 RF manager.

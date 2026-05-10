@@ -34,11 +34,11 @@
     #include "rfic_api.h"
 #endif
 #include "../drivers/avi/la9310_vspa_dma.h"
-#include "ms_l1c_controller.h"
-#include "ms_procx_comm.h"
-#include "ms_global_typedef.h"
-#include "ms_globals.h"
-#include "ms_l1c_modem_mgr.h"
+#include "ms_controller_l1c_controller.h"
+#include "ms_controller_procx_comm.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_globals.h"
+#include "ms_controller_l1c_modem_mgr.h"
 
 extern void switch_rf(uint32_t mode);
 

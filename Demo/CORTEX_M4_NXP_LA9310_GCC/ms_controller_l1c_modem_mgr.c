@@ -9,11 +9,11 @@
 #include <string.h>
 #include "pal_sem.h"
 #include "bbdev_ipc.h"
-#include "ms_global_typedef.h"
-#include "ms_procx_comm.h"
-#include "ms_l1c_controller.h"
-#include "ms_logger.h"
-#include "ms_l1c_modem_mgr.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_procx_comm.h"
+#include "ms_controller_l1c_controller.h"
+#include "ms_controller_logger.h"
+#include "ms_controller_l1c_modem_mgr.h"
 
 /*------------------------------------------
                 DEFINES

@@ -9,9 +9,9 @@
 #include <stddef.h>
 #include "pal_types.h"
 #include "pal_msgq.h"
-#include "ms_l1_controller_fwk.h"
-#include "ms_globals.h"
-#include "ms_logger.h"
+#include "ms_controller_l1_controller_fwk.h"
+#include "ms_controller_globals.h"
+#include "ms_controller_logger.h"
 #include "ipiQueue.h"
 
 

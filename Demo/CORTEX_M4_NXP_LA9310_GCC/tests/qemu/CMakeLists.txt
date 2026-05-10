@@ -63,10 +63,10 @@ SET(TEST_SOURCES
 
     # IPC / messaging layer under test
     ${DemoDir}/ipiQueue.c
-    ${DemoDir}/ms_procx_comm.c
-    ${DemoDir}/ms_l1_controller_fwk.c
-    ${DemoDir}/ms_globals.c
-    ${DemoDir}/ms_logger.c
+    ${DemoDir}/ms_controller_procx_comm.c
+    ${DemoDir}/ms_controller_l1_controller_fwk.c
+    ${DemoDir}/ms_controller_globals.c
+    ${DemoDir}/ms_controller_logger.c
     ${DemoDir}/freertos_compat.c
 )
 

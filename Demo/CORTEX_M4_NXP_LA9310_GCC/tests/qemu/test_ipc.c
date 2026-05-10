@@ -16,11 +16,11 @@
 #include "semphr.h"
 #include "pal_msgq.h"
 #include "ipiQueue.h"
-#include "ms_procx_comm.h"
-#include "ms_l1_controller_fwk.h"
-#include "ms_global_typedef.h"
-#include "ms_globals.h"
-#include "ms_logger.h"
+#include "ms_controller_procx_comm.h"
+#include "ms_controller_l1_controller_fwk.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_globals.h"
+#include "ms_controller_logger.h"
 #include "test_ipc.h"
 
 /* ------------------------------------------------------------------ */

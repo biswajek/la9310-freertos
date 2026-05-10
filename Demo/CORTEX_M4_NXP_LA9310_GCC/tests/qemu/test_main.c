@@ -11,8 +11,8 @@ extern void initialise_monitor_handles(void);
 #include "FreeRTOS.h"
 #include "task.h"
 #include "ipiQueue.h"
-#include "ms_globals.h"
-#include "ms_logger.h"
+#include "ms_controller_globals.h"
+#include "ms_controller_logger.h"
 #include "test_ipc.h"
 
 /* ------------------------------------------------------------------ */

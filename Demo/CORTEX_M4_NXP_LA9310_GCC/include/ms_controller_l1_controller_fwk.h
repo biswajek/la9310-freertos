@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include "pal_types.h"
 #include "pal_msgq.h"
-#include "ms_l1c_controller.h"
+#include "ms_controller_l1c_controller.h"
 #include "ipiQueue.h"
 
 /*------------------------------------------

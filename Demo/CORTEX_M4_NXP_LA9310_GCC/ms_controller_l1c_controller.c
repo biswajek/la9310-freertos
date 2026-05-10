@@ -15,15 +15,15 @@
 #include "pal_sem.h"
 #include "pal_thread.h"
 
-#include "ms_logger.h"
-#include "ms_l1c_controller.h"
-#include "ms_global_typedef.h"
-#include "ms_globals.h"
-#include "ms_l1c_vspa_in.h"
-#include "ms_l1c_vspa_out.h"
-#include "ms_l1c_receiver.h"
-#include "ms_l1c_transmitter.h"
-#include "ms_l1c_modem_mgr.h"
+#include "ms_controller_logger.h"
+#include "ms_controller_l1c_controller.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_globals.h"
+#include "ms_controller_l1c_vspa_in.h"
+#include "ms_controller_l1c_vspa_out.h"
+#include "ms_controller_l1c_receiver.h"
+#include "ms_controller_l1c_transmitter.h"
+#include "ms_controller_l1c_modem_mgr.h"
 
 
 /* TEST_L1C_TASKS creates every L1C task at once on a small FreeRTOS heap. */

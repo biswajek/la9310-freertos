@@ -9,7 +9,7 @@
 /*------------------------------------------
                 INCLUDES
 --------------------------------------------*/
-#include "ms_global_typedef.h"
+#include "ms_controller_global_typedef.h"
 
 /*------------------------------------------
                 GLOBAL VARIABLES

@@ -6,7 +6,7 @@
             INCLUDES
 --------------------------------------------*/
 #include "debug_console.h"
-#include "ms_logger.h"
+#include "ms_controller_logger.h"
 
 /*------------------------------------------
             VARIABLES

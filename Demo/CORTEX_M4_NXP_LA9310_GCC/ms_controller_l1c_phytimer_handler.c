@@ -11,8 +11,8 @@
                 INCLUDES
 --------------------------------------------*/
 #include <phytimer.h>
-#include "ms_global_typedef.h"
-#include "ms_l1c_controller.h"
+#include "ms_controller_global_typedef.h"
+#include "ms_controller_l1c_controller.h"
 
 /*------------------------------------------
                 DEFINES

@@ -18,7 +18,7 @@
 ***********************************************************************/
 #include <stdbool.h>
 #include <string.h>
-#include "ms_logger.h"
+#include "ms_controller_logger.h"
 #include "ipiQueue.h"
 
 
