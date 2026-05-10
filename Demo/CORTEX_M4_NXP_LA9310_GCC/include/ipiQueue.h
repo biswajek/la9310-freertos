@@ -10,7 +10,7 @@
 ***********************************************************************/
 #include <stdbool.h>
 #include <stddef.h>
-#include "ms_controller_global_typedef.h"
+#include <stdint.h>
 #include "pal_msgq.h"
 #include "pal_sem.h"
 

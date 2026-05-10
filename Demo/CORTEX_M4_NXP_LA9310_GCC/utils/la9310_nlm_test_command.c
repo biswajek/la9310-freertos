@@ -34,11 +34,19 @@
     #include "rfic_api.h"
 #endif
 #include "../drivers/avi/la9310_vspa_dma.h"
+#ifdef MS_TARGET_CAMERA
+#include "ms_camera_l1c_controller.h"
+#include "ms_camera_procx_comm.h"
+#include "ms_camera_global_typedef.h"
+#include "ms_camera_globals.h"
+#include "ms_camera_l1c_modem_mgr.h"
+#else
 #include "ms_controller_l1c_controller.h"
 #include "ms_controller_procx_comm.h"
 #include "ms_controller_global_typedef.h"
 #include "ms_controller_globals.h"
 #include "ms_controller_l1c_modem_mgr.h"
+#endif
 
 extern void switch_rf(uint32_t mode);
 
@@ -473,19 +481,19 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 			 * the rest are event-driven via their proc queues.
 			 * Use test 24 to start the phy timer tick after tasks are running. */
 			PRINTF( "[L1C] Initialising proc queues (vspaIn, vspaOut, modemMgr, RX, TX)\r\n" );
+#ifdef MS_TARGET_CAMERA
+			l1_camera_queues_init();
+			PRINTF( "[L1C] Creating tasks: cameraMgrTask vspaInTask vspaOutTask receiverTask transmitterTask\r\n" );
+			l1_camera_tasks_create();
+#else
 			l1_controller_queues_init();
 			PRINTF( "[L1C] Creating tasks: modemMgrTask vspaInTask vspaOutTask receiverTask transmitterTask\r\n" );
 			l1_controller_tasks_create();
+#endif
 			PRINTF( "[L1C] Task creation complete\r\n" );
 			break;
 
 		case TEST_QUEUE_IPC:
-			/* Test inter-task communication via procx_comm for a chosen path.
-			 * Param2 selects path:
-			 *   0 = MDMMGR -> TX  (MS_MSG_OPCODE_CONTROL_MSG)
-			 *   1 = TX -> RX      (MS_MSG_OPCODE_CTRL_MSG_SENT)
-			 *   2 = VSPA_IN -> RX (MS_MSG_OPCODE_CTRL_ACK)
-			 *   other = all three paths in sequence */
 		{
 			S_UNIFIED_MSG_BUFF xTestMsg;
 			bool bOk;
@@ -493,15 +501,47 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
 
+#ifdef MS_TARGET_CAMERA
+			/* Camera IPC test:
+			 *   0 = CAMMGR -> TX  (BCH_NOTIFY_HOST)
+			 *   1 = RX -> TX      (PREPARE_ACK_TX)
+			 *   2 = VSPA_IN -> RX (BCH_DECODED)
+			 *   other = all three */
 			if( ( ulTempVal2 == 0 ) || ( ulTempVal2 > 2 ) )
 			{
 				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
-				xTestMsg.opcode = MS_MSG_OPCODE_CONTROL_MSG;
+				xTestMsg.opcode = MS_MSG_OPCODE_BCH_NOTIFY_HOST;
+				bOk = procx_comm( TX_XC_ID, CAMMGR_XC_ID, &xTestMsg );
+				PRINTF( "[QueueIPC] CAMMGR->TX (BCH_NOTIFY_HOST): %s\r\n", bOk ? "ok" : "FAIL" );
+			}
+			if( ( ulTempVal2 == 1 ) || ( ulTempVal2 > 2 ) )
+			{
+				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
+				xTestMsg.opcode = MS_MSG_OPCODE_PREPARE_ACK_TX;
+				bOk = procx_comm( TX_XC_ID, RX_XC_ID, &xTestMsg );
+				PRINTF( "[QueueIPC] RX->TX (PREPARE_ACK_TX): %s\r\n", bOk ? "ok" : "FAIL" );
+			}
+			if( ( ulTempVal2 == 2 ) || ( ulTempVal2 > 2 ) )
+			{
+				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
+				xTestMsg.opcode = MS_MSG_OPCODE_BCH_DECODED;
+				bOk = procx_comm( RX_XC_ID, VSPA_IN_XC_ID, &xTestMsg );
+				PRINTF( "[QueueIPC] VSPA_IN->RX (BCH_DECODED): %s\r\n", bOk ? "ok" : "FAIL" );
+			}
+#else
+			/* Controller IPC test:
+			 *   0 = MDMMGR -> TX  (BCH_SEND)
+			 *   1 = TX -> RX      (CTRL_MSG_SENT)
+			 *   2 = VSPA_IN -> RX (CTRL_ACK)
+			 *   other = all three */
+			if( ( ulTempVal2 == 0 ) || ( ulTempVal2 > 2 ) )
+			{
+				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
+				xTestMsg.opcode = MS_MSG_OPCODE_BCH_SEND;
 				xTestMsg.camera_id = 0;
 				bOk = procx_comm( TX_XC_ID, MDMMGR_XC_ID, &xTestMsg );
-				PRINTF( "[QueueIPC] MDMMGR->TX (CONTROL_MSG): %s\r\n", bOk ? "ok" : "FAIL" );
+				PRINTF( "[QueueIPC] MDMMGR->TX (BCH_SEND): %s\r\n", bOk ? "ok" : "FAIL" );
 			}
-
 			if( ( ulTempVal2 == 1 ) || ( ulTempVal2 > 2 ) )
 			{
 				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
@@ -509,7 +549,6 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 				bOk = procx_comm( RX_XC_ID, TX_XC_ID, &xTestMsg );
 				PRINTF( "[QueueIPC] TX->RX (CTRL_MSG_SENT): %s\r\n", bOk ? "ok" : "FAIL" );
 			}
-
 			if( ( ulTempVal2 == 2 ) || ( ulTempVal2 > 2 ) )
 			{
 				memset( &xTestMsg, 0, sizeof( xTestMsg ) );
@@ -517,7 +556,7 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 				bOk = procx_comm( RX_XC_ID, VSPA_IN_XC_ID, &xTestMsg );
 				PRINTF( "[QueueIPC] VSPA_IN->RX (CTRL_ACK): %s\r\n", bOk ? "ok" : "FAIL" );
 			}
-
+#endif
 			break;
 		}
 
@@ -532,14 +571,22 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 
 			PRINTF( "[ModemMgrTimer] configuring phytimer PPS-OUT (10 ms tick) for core %u\r\n",
 					( unsigned int ) g_GlobalDebugInfo.CoreNum );
+#ifdef MS_TARGET_CAMERA
+			l1_camera_phytimer_init( ( uint8_t ) g_GlobalDebugInfo.CoreNum );
+#else
 			l1_controller_phytimer_init( ( uint8_t ) g_GlobalDebugInfo.CoreNum );
+#endif
 			PRINTF( "[ModemMgrTimer] phytimer active - sampling slot/frame count %lu times\r\n",
 					( unsigned long ) ulTempVal2 );
 
 			for( i = 0; i < ulTempVal2; i++ )
 			{
 				uint32_t ulSlot, ulFrame;
+#ifdef MS_TARGET_CAMERA
+				camera_mgr_get_slot_frame_count( &ulSlot, &ulFrame );
+#else
 				modem_mgr_get_slot_frame_count( &ulSlot, &ulFrame );
+#endif
 				PRINTF( "[ModemMgrTimer] sample %lu: frame=%lu slot=%lu\r\n",
 						( unsigned long ) i, ( unsigned long ) ulFrame, ( unsigned long ) ulSlot );
 				vTaskDelay( pdMS_TO_TICKS( 50 ) );

@@ -90,6 +90,46 @@ if(TEST_L1C_TASKS)
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DTEST_L1C_TASKS")
 endif()
 
+# MS target hardware selection: CONTROLLER (default) or CAMERA
+# Exactly one set of ms_* sources is compiled depending on this flag.
+# Usage: cmake -DMS_TARGET=CAMERA ...  or  cmake -DMS_TARGET=CONTROLLER ...
+set(MS_TARGET "CONTROLLER" CACHE STRING "Target hardware: CONTROLLER or CAMERA")
+set_property(CACHE MS_TARGET PROPERTY STRINGS CONTROLLER CAMERA)
+
+# Common sources compiled for both CONTROLLER and CAMERA targets.
+SET(MS_COMMON_SOURCES
+    "${ProjDirPath}/ms_logger.c"
+    "${ProjDirPath}/ms_globals.c"
+    "${ProjDirPath}/ms_procx_comm.c"
+    "${ProjDirPath}/ms_l1_controller_fwk.c"
+    "${ProjDirPath}/ms_l1c_controller.c"
+)
+
+# Target-specific sources: only one set is compiled at a time.
+if(MS_TARGET STREQUAL "CAMERA")
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DMS_TARGET_CAMERA")
+    SET(MS_SOURCES
+        "${ProjDirPath}/ms_camera_l1c_modem_mgr.c"
+        "${ProjDirPath}/ms_camera_l1c_phytimer_handler.c"
+        "${ProjDirPath}/ms_camera_l1c_receiver.c"
+        "${ProjDirPath}/ms_camera_l1c_rf_manager.c"
+        "${ProjDirPath}/ms_camera_l1c_transmitter.c"
+        "${ProjDirPath}/ms_camera_l1c_vspa_in.c"
+        "${ProjDirPath}/ms_camera_l1c_vspa_out.c"
+    )
+else()
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DMS_TARGET_CONTROLLER")
+    SET(MS_SOURCES
+        "${ProjDirPath}/ms_controller_l1c_modem_mgr.c"
+        "${ProjDirPath}/ms_controller_l1c_phytimer_handler.c"
+        "${ProjDirPath}/ms_controller_l1c_receiver.c"
+        "${ProjDirPath}/ms_controller_l1c_rf_manager.c"
+        "${ProjDirPath}/ms_controller_l1c_transmitter.c"
+        "${ProjDirPath}/ms_controller_l1c_vspa_in.c"
+        "${ProjDirPath}/ms_controller_l1c_vspa_out.c"
+    )
+endif()
+
 # CXX MACRO
 
 # INCLUDE_DIRECTORIES
@@ -143,20 +183,10 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/main.c"
     "${ProjDirPath}/la9310_demo.c"
     "${ProjDirPath}/la9310_irq.c"
-    "${ProjDirPath}/ms_controller_logger.c"
-    "${ProjDirPath}/ms_controller_globals.c"
-    "${ProjDirPath}/ms_controller_procx_comm.c"
+    ${MS_COMMON_SOURCES}
+    ${MS_SOURCES}
     "${ProjDirPath}/ipiQueue.c"
     "${ProjDirPath}/freertos_compat.c"
-    "${ProjDirPath}/ms_controller_l1_controller_fwk.c"
-    "${ProjDirPath}/ms_controller_l1c_controller.c"
-    "${ProjDirPath}/ms_controller_l1c_modem_mgr.c"
-    "${ProjDirPath}/ms_controller_l1c_phytimer_handler.c"
-    "${ProjDirPath}/ms_controller_l1c_receiver.c"
-    "${ProjDirPath}/ms_controller_l1c_rf_manager.c"
-    "${ProjDirPath}/ms_controller_l1c_transmitter.c"
-    "${ProjDirPath}/ms_controller_l1c_vspa_in.c"
-    "${ProjDirPath}/ms_controller_l1c_vspa_out.c"
 
     #"${ProjDirPath}/la9310_v2h_test.c"
     #"${ProjDirPath}/bbdev_ipc_raw_demo.c"
@@ -199,20 +229,10 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/la9310_demo.c"
     "${ProjDirPath}/rfnm_rf_ctrl.c"
     "${ProjDirPath}/la9310_irq.c"
-    "${ProjDirPath}/ms_controller_logger.c"
-    "${ProjDirPath}/ms_controller_globals.c"
-    "${ProjDirPath}/ms_controller_procx_comm.c"
+    ${MS_COMMON_SOURCES}
+    ${MS_SOURCES}
     "${ProjDirPath}/ipiQueue.c"
     "${ProjDirPath}/freertos_compat.c"
-    "${ProjDirPath}/ms_controller_l1_controller_fwk.c"
-    "${ProjDirPath}/ms_controller_l1c_controller.c"
-    "${ProjDirPath}/ms_controller_l1c_modem_mgr.c"
-    "${ProjDirPath}/ms_controller_l1c_phytimer_handler.c"
-    "${ProjDirPath}/ms_controller_l1c_receiver.c"
-    "${ProjDirPath}/ms_controller_l1c_rf_manager.c"
-    "${ProjDirPath}/ms_controller_l1c_transmitter.c"
-    "${ProjDirPath}/ms_controller_l1c_vspa_in.c"
-    "${ProjDirPath}/ms_controller_l1c_vspa_out.c"
 
     "${ProjDirPath}/la9310_v2h_test.c"
     "${ProjDirPath}/bbdev_ipc_raw_demo.c"
