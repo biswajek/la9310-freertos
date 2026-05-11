@@ -8,9 +8,12 @@
 #include "ms_camera_l1_controller_fwk.h"
 #include "ms_camera_procx_comm.h"
 
-#ifndef CTRL_ACK_TIMEOUT_FRAMES
-#define CTRL_ACK_TIMEOUT_FRAMES  10U
-#endif
+/** @brief Receiver task states. */
+typedef enum
+{
+    CAM_RX_STATE_IDLE     = 0, /**< Idle — LDPC decoder not yet armed. */
+    CAM_RX_STATE_WAIT_BCH,     /**< LDPC decoder armed, waiting for BCH decode. */
+} cam_rx_state_t;
 
 extern proc_queue_t receiver_q;
 

@@ -20,6 +20,7 @@
 #define L1_MGR_TASK_ID      L1_CAMERA_MGR_TASK
 #define L1_MGR_TASK_NAME    "cameraMgrTask"
 #define L1_MGR_TASK_FUNC    camera_mgr_task
+#define L1_MGR_TICK_TYPE    TICK_DISABLE
 #define l1_target_vspa_in_init      l1_camera_vspa_in_init
 #define l1_target_vspa_out_init     l1_camera_vspa_out_init
 #define l1_target_mgr_init          l1_camera_mgr_init
@@ -40,6 +41,7 @@
 #define L1_MGR_TASK_ID      L1_MODEM_MGR_TASK
 #define L1_MGR_TASK_NAME    "modemMgrTask"
 #define L1_MGR_TASK_FUNC    modem_mgr_task
+#define L1_MGR_TICK_TYPE    TICK_ENABLE
 #define l1_target_vspa_in_init      l1_controller_vspa_in_init
 #define l1_target_vspa_out_init     l1_controller_vspa_out_init
 #define l1_target_mgr_init          l1_controller_modem_mgr_init
@@ -153,7 +155,7 @@ void l1_controller_tasks_create( void )
 #endif
 {
     l1_create_task( g_GlobalDebugInfo.CoreNum, L1_MGR_TASK_ID,
-                    L1_MGR_TASK_NAME, TICK_ENABLE, 1, L1_MGR_TASK_FUNC );
+                    L1_MGR_TASK_NAME, L1_MGR_TICK_TYPE, 1, L1_MGR_TASK_FUNC );
     l1_create_task( g_GlobalDebugInfo.CoreNum, L1_VSPA_IN_TASK,
                     "vspaInTask", TICK_DISABLE, 1, vspa_in_task );
     l1_create_task( g_GlobalDebugInfo.CoreNum, L1_VSPA_OUT_TASK,

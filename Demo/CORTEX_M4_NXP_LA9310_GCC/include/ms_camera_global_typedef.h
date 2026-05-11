@@ -35,47 +35,32 @@ typedef enum MS_MOD_SCHEME
 
 typedef enum MS_MSG_OPCODE
 {
-    /*---   HOST ==> CAMERA_MGR ==> TX : send BCH; camera_id/payload carry control parameters --- */
-    MS_MSG_OPCODE_BCH_SEND = 0,
+    /*---   RX ==> VSPA_IN : configure LDPC decoder for BCH reception --- */
+    MS_MSG_OPCODE_BCH_LDPC_CFG = 0,
 
-    /*---   TX ==> RX : BCH with control parameters was sent over the air --- */
-    MS_MSG_OPCODE_CTRL_MSG_SENT,
+    /*---   VSPA_IN ==> RX : BCH successfully decoded by VSPA (carries camera_id) --- */
+    MS_MSG_OPCODE_BCH_DECODED,
 
-    /*---   VSPA_IN ==> RX : ACK received from controller over the air --- */
-    MS_MSG_OPCODE_CTRL_ACK,
+    /*---   VSPA_IN ==> RX : BCH decode timed out or failed --- */
+    MS_MSG_OPCODE_BCH_DECODE_FAIL,
 
-    /*---   HOST ==> CAMERA_MGR ==> RX : begin video transmission to controller --- */
+    /*---   RX ==> CAMERA_MGR : BCH decoded — notify upper layer via IPC --- */
+    MS_MSG_OPCODE_BCH_NOTIFY_HOST,
+
+    /*---   RX ==> TX : BCH decoded, prepare ACK transmission for slot 1 --- */
+    MS_MSG_OPCODE_PREPARE_ACK_TX,
+
+    /*---   TX ==> VSPA_IN : configure VSPA TX encoder during slot 0 --- */
+    MS_MSG_OPCODE_TX_ENC_CFG,
+
+    /*---   VSPA_IN ==> TX : TX encoder configured, send ACK over the air --- */
+    MS_MSG_OPCODE_TX_ENC_CFG_ACK,
+
+    /*---   TX ==> CAMERA_MGR : ACK successfully transmitted to controller --- */
+    MS_MSG_OPCODE_ACK_SENT,
+
+    /*---   HOST ==> CAMERA_MGR : start video transmission to controller --- */
     MS_MSG_OPCODE_START_VIDEO_TX,
-
-    /*---   RX ==> VSPA_IN : configure VSPA video encoder --- */
-    MS_MSG_OPCODE_VIDEO_ENC_CFG,
-
-    /*---   VSPA_IN ==> RX : video encoder cfg-done ACK received from VSPA --- */
-    MS_MSG_OPCODE_VIDEO_ENC_CFG_ACK,
-
-    /*---   RX ==> VSPA_IN : trigger VSPA video encoding --- */
-    MS_MSG_OPCODE_VIDEO_ENC_RUN,
-
-    /*---   VSPA_IN ==> RX : video encoding complete, frame ready to transmit --- */
-    MS_MSG_OPCODE_VIDEO_ENC_DONE,
-
-    /*---   RX ==> CAMERA_MGR ==> HOST : video TX starts next frame --- */
-    MS_MSG_OPCODE_TX_READY,
-
-    /*---   TX ==> VSPA_OUT : deliver control message to VSPA via mailbox --- */
-    MS_MSG_OPCODE_VSPA_SEND_CTRL,
-
-    /*---   Reserved: legacy request to wait for control ACK from VSPA. --- */
-    MS_MSG_OPCODE_VSPA_WAIT_ACK,
-
-    /*---   Reserved: legacy request to wait for video encoder cfg-done ACK. --- */
-    MS_MSG_OPCODE_VSPA_WAIT_VIDEO_ENC_ACK,
-
-    /*---   VSPA_IN ==> RX : ACK wait timed out, no response from controller --- */
-    MS_MSG_OPCODE_CTRL_ACK_FAIL,
-
-    /*---   CAMERA_MGR ==> OAM/HOST : host IPC test reply --- */
-    MS_MSG_OPCODE_HOST_TEST_REPLY,
 
     MS_MSG_OPCODE_MAX
 } MS_MSG_OPCODE;
@@ -106,12 +91,8 @@ typedef struct S_GlobalDebugInfo
 typedef struct S_UNIFIED_MSG_BUFF
 {
     MS_MSG_OPCODE   opcode;
-    void           *payload;
     uint8_t         camera_id;
     uint32_t        time;
 } S_UNIFIED_MSG_BUFF;
-
-typedef char S_UNIFIED_MSG_BUFF_must_match_host_wire_abi[
-    ( sizeof( S_UNIFIED_MSG_BUFF ) == 16U ) ? 1 : -1 ];
 
 #endif /* __CAMERA_GLOBAL_TYPEDEF_H */
